@@ -1,13 +1,20 @@
 <template>
-  <div class="list">
+  <section class="form">
+    <input type="text" v-model="input.title" placeholder="title" />
+    <input type="text" v-model="input.description" placeholder="description" />
+    <input type="text" v-model="input.links" placeholder="url, url" />
+    <input type="checkbox" v-model="input.bought" /> Gekauft
+    <button @click="addItem()">Add</button>
+  </section>
+  <section class="list">
     <div class="item" v-for="(i, n) in items" :key="i.id">
-      <h2>#{{ n+1 }} {{ i.title }}</h2>
+      <h2>#{{ i.id }} {{ i.title }}</h2>
       <p>
         {{ i.description }}
         <span v-for="l in i.links"><a :href="l" target="_blank">Link</a></span>
       </p>
     </div>
-  </div>
+  </section>
 </template>
 
 <script>
@@ -26,20 +33,48 @@ export default {
     HelloWorld
   },
   data: () => ({
-    items: []
+    items: [],
+    input: {}
   }),
   async created () {
     // subscribe to all events to provide realtime experience
     supabase.from('items').on('*', async payload => { await this.syncItems() }).subscribe()
     // initially get all existing items
     await this.syncItems()
+    // init input
+    this.input = JSON.parse(JSON.stringify(this.initItem))
   },
   methods: {
     // retrieve list of items
     async syncItems () {
       let { data: items, error } = await supabase.from('items').select('*')
       this.items = items
+    },
+    // retrieve list of items
+    async addItem () {
+      await supabase.from('items').insert([ this.processedInput ])
+      this.input = JSON.parse(JSON.stringify(this.initItem))
     }
+  },
+  computed: {
+    // initial item object
+    initItem () {
+      return {
+        title: '',
+        description: '',
+        links: '',
+        bought: false
+      }
+    },
+    // processed input object
+    processedInput () {
+      return {
+        title: this.input.title,
+        description: this.input.description,
+        links: this.input.links.split(',').map(l => l.trim()),
+        bought: this.input.bought
+      }
+    },
   }
 }
 </script>
