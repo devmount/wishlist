@@ -2,10 +2,10 @@
   <div class="list">
     <div class="item" v-for="(i, n) in items" :key="i.id">
       <h2>#{{ n+1 }} {{ i.title }}</h2>
-      <p>{{ i.description }}</p>
-      <ul>
-        <li v-for="l in i.links">{{ l }}</li>
-      </ul>
+      <p>
+        {{ i.description }}
+        <span v-for="l in i.links"><a :href="l" target="_blank">Link</a></span>
+      </p>
     </div>
   </div>
 </template>
@@ -29,16 +29,16 @@ export default {
     items: []
   }),
   async created () {
-    // subscribe to all items changes to prived realtime experience
-    supabase.from('items').on('*', payload => {  console.log('Change received!', payload)}).subscribe()
+    // subscribe to all events to provide realtime experience
+    supabase.from('items').on('*', async payload => { await this.syncItems() }).subscribe()
     // initially get all existing items
-    this.items = await this.getItems()
+    await this.syncItems()
   },
   methods: {
     // retrieve list of items
-    async getItems () {
+    async syncItems () {
       let { data: items, error } = await supabase.from('items').select('*')
-      return items
+      this.items = items
     }
   }
 }
