@@ -4,15 +4,16 @@
     <input type="text" v-model="input.description" placeholder="description" />
     <input type="text" v-model="input.links" placeholder="url, url" />
     <input type="checkbox" v-model="input.bought" /> Gekauft
-    <button @click="addItem()">Add</button>
+    <button @click="syncData()">Add</button>
   </section>
   <section class="list">
     <div class="item" v-for="(i, n) in items" :key="i.id">
       <h2>#{{ i.id }} {{ i.title }}</h2>
-      <p>
+      <div>
         {{ i.description }}
         <span v-for="l in i.links"><a :href="l" target="_blank">Link</a></span>
-      </p>
+      </div>
+      <div><span @click="editItem(i)">Edit</span> <span @click="deleteItem(i.id)">Delete</span></div>
     </div>
   </section>
 </template>
@@ -34,7 +35,9 @@ export default {
   },
   data: () => ({
     items: [],
-    input: {}
+    input: {},
+    mode: 'INSERT',
+    target: null,
   }),
   async created () {
     // subscribe to all events to provide realtime experience
@@ -50,11 +53,30 @@ export default {
       let { data: items, error } = await supabase.from('items').select('*')
       this.items = items
     },
-    // retrieve list of items
-    async addItem () {
-      await supabase.from('items').insert([ this.processedInput ])
+    // store new item
+    async syncData () {
+      switch (this.mode) {
+        case 'INSERT':
+          await supabase.from('items').insert([ this.processedInput ]); break
+        case 'UPDATE':
+          await supabase.from('items').update([ this.processedInput ]).match({ id: this.target }); break
+        case 'DELETE':
+          await supabase.from('items').delete().match({ id: this.target }); break
+        default:
+          break;
+      }
       this.input = JSON.parse(JSON.stringify(this.initItem))
-    }
+      this.mode = 'INSERT'
+      this.target = null
+    },
+    // edit existing item
+    async editItem (item) {
+      let i = JSON.parse(JSON.stringify(item))
+      i.links = item.links.join(',')
+      this.input = i
+      this.mode = 'UPDATE'
+      this.target = i.id
+    },
   },
   computed: {
     // initial item object
