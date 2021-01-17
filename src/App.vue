@@ -70,12 +70,16 @@ export default {
       this.target = null
     },
     // edit existing item
-    async editItem (item) {
+    editItem (item) {
       let i = JSON.parse(JSON.stringify(item))
       i.links = item.links.join(',')
       this.input = i
       this.mode = 'UPDATE'
       this.target = i.id
+    },
+    // delete existing item
+    async deleteItem (id) {
+      await supabase.from('items').delete().match({ id: id })
     },
   },
   computed: {
