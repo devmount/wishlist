@@ -7,6 +7,7 @@
     "build": "vue-cli-service build"
   },
   "dependencies": {
+    "@supabase/supabase-js": "^1.2.1",
     "core-js": "^3.6.5",
     "vue": "^3.0.0"
   },
