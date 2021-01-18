@@ -20,8 +20,8 @@
           <span v-show="i.bought">K</span>
         </div>
         <div>
-          <button @click="reserveItem(i).id">Reservieren</button>
-          <button @click="boughtItem(i.id)">Gekauft</button>
+          <button @click="reserveItem(i)">Reservieren</button>
+          <button @click="boughtItem(i)">Gekauft</button>
         </div>
         <div v-if="admin">
           <button @click="editItem(i)">Bearbeiten</button>
@@ -100,6 +100,16 @@ export default {
       this.input = i
       this.mode = 'UPDATE'
       this.target = i.id
+    },
+    // set item reserved
+    async reserveItem (item) {
+      item.reserved = true
+      await this.$supabase.from('items').update([ item ]).match({ id: item.id })
+    },
+    // set item bought
+    async boughtItem (item) {
+      item.bought = true
+      await this.$supabase.from('items').update([ item ]).match({ id: item.id })
     },
     // delete existing item
     async deleteItem (id) {
