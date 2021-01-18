@@ -60,8 +60,10 @@ export default {
     },
     // retrieve list of item objects
     async getItems () {
-      let { data: items, error } = await this.$supabase.from('items').select('*')
-      this.items = items
+      if (this.list && this.list.id) {
+        let { data: items, error } = await this.$supabase.from('items').select('*').filter('list', 'eq', this.list.id)
+        this.items = items
+      }
     },
     // store new item
     async syncItem () {
@@ -115,8 +117,9 @@ export default {
     },
   },
   watch: {
-    $route(to, from) {
-      this.getList()
+    async $route (to, from) {
+      await this.getList()
+      await this.getItems()
     }
   }
 }
