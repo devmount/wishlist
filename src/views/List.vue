@@ -8,7 +8,6 @@
       <input type="text" v-model="input.title" placeholder="title" />
       <input type="text" v-model="input.description" placeholder="description" />
       <input type="text" v-model="input.links" placeholder="url, url" />
-      <input type="checkbox" v-model="input.bought" /> Gekauft
       <button @click="syncItem()">Add Item</button>
     </section>
     <section class="list">
