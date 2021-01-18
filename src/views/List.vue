@@ -4,7 +4,7 @@
       <h1>{{ list.title }}</h1>
       <p>{{ list.description }}</p>
     </header>
-    <section class="form">
+    <section>
       <input type="text" v-model="input.title" placeholder="title" />
       <input type="text" v-model="input.description" placeholder="description" />
       <input type="text" v-model="input.links" placeholder="url, url" />
@@ -22,17 +22,12 @@
     </section>
   </div>
   <div v-else>
-    <button @click="syncList()">Add List</button>
+    Diese Liste existiert nicht mehr oder der Link ist ungültig.
+   <router-link to="/">Neustart</router-link>
   </div>
 </template>
 
 <script>
-// import external dependencies
-import { createClient } from '@supabase/supabase-js'
-const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJyb2xlIjoiYW5vbiIsImlhdCI6MTYxMDg4MjU1MiwiZXhwIjoxOTI2NDU4NTUyfQ.FLgpeb22wLfHaZl6bQD6ztDG5UiTPTC9ympeN4bq0bc'
-const SUPABASE_URL = "https://ttohmduvoxaknazzfyre.supabase.co"
-const supabase = createClient(SUPABASE_URL, SUPABASE_KEY)
-
 export default {
   name: 'App',
   data: () => ({
@@ -44,8 +39,8 @@ export default {
   }),
   async created () {
     // subscribe to all changes on the lists table and the items table to provide realtime experience
-    supabase.from('lists').on('*', async payload => { await this.getList() }).subscribe()
-    supabase.from('items').on('*', async payload => { await this.getItems() }).subscribe()
+    this.$supabase.from('lists').on('*', async payload => { await this.getList() }).subscribe()
+    this.$supabase.from('items').on('*', async payload => { await this.getItems() }).subscribe()
     // initially get all existing items
     await this.getList()
     await this.getItems()
@@ -55,7 +50,7 @@ export default {
   methods: {
     // retrieve list object
     async getList () {
-      let { data: lists, error } = await supabase.from('lists').select('*')
+      let { data: lists, error } = await this.$supabase.from('lists').select('*')
       let requestedList = lists.find(l => l.slug_public == this.$route.params.public)
       if (requestedList) {
         this.list = requestedList
@@ -65,16 +60,16 @@ export default {
     },
     // retrieve list of item objects
     async getItems () {
-      let { data: items, error } = await supabase.from('items').select('*')
+      let { data: items, error } = await this.$supabase.from('items').select('*')
       this.items = items
     },
     // store new item
     async syncItem () {
       switch (this.mode) {
         case 'INSERT':
-          await supabase.from('items').insert([ this.processedInput ]); break
+          await this.$supabase.from('items').insert([ this.processedInput ]); break
         case 'UPDATE':
-          await supabase.from('items').update([ this.processedInput ]).match({ id: this.target }); break
+          await this.$supabase.from('items').update([ this.processedInput ]).match({ id: this.target }); break
         default:
           break;
       }
@@ -92,7 +87,7 @@ export default {
     },
     // delete existing item
     async deleteItem (id) {
-      await supabase.from('items').delete().match({ id: id })
+      await this.$supabase.from('items').delete().match({ id: id })
     },
   },
   computed: {
