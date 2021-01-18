@@ -63,7 +63,12 @@ export default {
     // retrieve list object
     async getList () {
       let { data: lists, error } = await supabase.from('lists').select('*')
-      this.list = lists.find(l => l.id == 1)
+      let requestedList = lists.find(l => l.slug_public == this.$route.params.public)
+      if (requestedList) {
+        this.list = requestedList
+      } else {
+        this.list = null
+      }
     },
     // retrieve list of item objects
     async getItems () {
@@ -106,7 +111,7 @@ export default {
         links: '',
         bought: false,
         reserved: false,
-        list: this.list.id
+        list: null
       }
     },
     // processed input object
@@ -120,6 +125,11 @@ export default {
         list: this.list.id
       }
     },
+  },
+  watch: {
+    $route(to, from) {
+      this.getList()
+    }
   }
 }
 </script>
