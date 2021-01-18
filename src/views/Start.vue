@@ -9,6 +9,11 @@
         <button @click="addList()">Liste hinzufügen</button>
       </div>
     </section>
+    <section>
+      <h2>Lokaler Verlauf</h2>
+      <p>Dieser Bereich ist nur auf diesem Gerät sichtbar.</p>
+      <p>TODO</p>
+    </section>
   </div>
 </template>
 

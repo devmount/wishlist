@@ -4,21 +4,35 @@
       <h1>{{ list.title }}</h1>
       <p>{{ list.description }}</p>
     </header>
-    <section>
+    <section v-if="admin">
       <input type="text" v-model="input.title" placeholder="title" />
       <input type="text" v-model="input.description" placeholder="description" />
       <input type="text" v-model="input.links" placeholder="url, url" />
-      <button @click="syncItem()">Add Item</button>
+      <button @click="syncItem()">Wunsch hinzufügen</button>
     </section>
     <section class="list">
       <div class="item" v-for="(i, n) in items" :key="i.id">
         <h2>#{{ i.id }} {{ i.title }}</h2>
         <div>
           {{ i.description }}
-          <span v-for="l in i.links"><a :href="l" target="_blank">Link</a></span>
+          <span v-for="l in i.links"><a :href="l" target="_blank">Shop</a></span>
+          <span v-show="i.reserved">R</span>
+          <span v-show="i.bought">K</span>
         </div>
-        <div><span @click="editItem(i)">Edit</span> <span @click="deleteItem(i.id)">Delete</span></div>
+        <div>
+          <button @click="reserveItem(i).id">Reservieren</button>
+          <button @click="boughtItem(i.id)">Gekauft</button>
+        </div>
+        <div v-if="admin">
+          <button @click="editItem(i)">Bearbeiten</button>
+          <button @click="deleteItem(i.id)">Löschen</button>
+        </div>
       </div>
+    </section>
+    <section v-if="admin">
+      <h3>Teilen</h3>
+      Link zum Teilen: <code>https://wishlist.devmount.de/{{ $route.params.public }}</code><br>
+      Link zum Administrieren: <code>https://wishlist.devmount.de/{{ $route.params.public }}/{{ $route.params.private }}</code>
     </section>
   </div>
   <div v-else>
@@ -115,6 +129,10 @@ export default {
         list: this.list.id
       }
     },
+    // check if admin token is given and correct
+    admin () {
+      return  this.$route.params.private && this.list.slug_private === this.$route.params.private
+    }
   },
   watch: {
     async $route (to, from) {
