@@ -33,14 +33,8 @@ const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJyb2xlIjoiYW5vbiIsI
 const SUPABASE_URL = "https://ttohmduvoxaknazzfyre.supabase.co"
 const supabase = createClient(SUPABASE_URL, SUPABASE_KEY)
 
-// @ is an alias to /src
-import HelloWorld from '@/components/HelloWorld.vue'
-
 export default {
   name: 'App',
-  components: {
-    HelloWorld
-  },
   data: () => ({
     list: null,
     items: [],
