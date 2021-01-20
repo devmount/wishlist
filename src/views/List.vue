@@ -22,10 +22,14 @@
         <sl-input class="grow-1" type="text" v-model="input.title" placeholder="Titel"></sl-input>
         <sl-input class="grow-5" type="text" v-model="input.description" placeholder="Beschreibung"></sl-input>
       </div>
-      <sl-textarea class="grow-1 mb-m" v-model="input.links" placeholder="Links zum Artikel (ein Link pro Zeile)" rows="1" resize="auto"></sl-textarea>
-      <sl-button type="primary" size="large" @click="syncItem()">
-        <sl-icon class="font-xl" slot="suffix" name="plus"></sl-icon>
-        Wunsch erstellen
+      <sl-textarea class="grow-1 mb-m" v-model="input.links" placeholder="Link Adressen zum Artikel (ein Link pro Zeile)" rows="1" resize="auto"></sl-textarea>
+      <sl-button v-if="mode=='UPDATE'" type="primary" size="large" @click="syncItem()">
+          <sl-icon class="font-xl" slot="suffix" name="pencil"></sl-icon>
+          Wunsch anpassen
+      </sl-button>
+      <sl-button v-else type="primary" size="large" @click="syncItem()">
+          <sl-icon class="font-xl" slot="suffix" name="plus"></sl-icon>
+          Wünschen
       </sl-button>
     </section>
     <section ref="wishlist" class="mb-xxxl">
