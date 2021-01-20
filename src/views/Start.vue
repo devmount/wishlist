@@ -25,8 +25,9 @@
     <p>
       Zur Erinnerung sind hier die von dir angelegten Listen aufgeführt.
       Diese Einträge sind nur auf diesem Gerät und in diesem Browser sichtbar, du kannst sie löschen, wenn du sie nicht mehr brauchst
-      (die Wunschlisten selbst werden dadurch nicht gelöscht).</p>
-    <div v-if="localLists.length>0" class="card-container">
+      (die Wunschlisten selbst werden dadurch nicht gelöscht).
+    </p>
+    <div v-if="localLists.length>0" class="d-flex gap-m flex-wrap justify-space-between">
       <sl-card v-for="(l, i) in localLists" :key="i">
         Erstellt <sl-relative-time :date="l.ts" locale="de"></sl-relative-time><br />
         am <sl-format-date :date="l.ts" month="long" day="numeric" year="numeric" locale="de"></sl-format-date>
