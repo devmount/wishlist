@@ -3,11 +3,13 @@
 </template>
 
 <style lang="stylus">
+@import "assets/global"
+
+@media (min-width: break)
+  #app
+    max-width: break
+
 #app
-  font-family Avenir, Helvetica, Arial, sans-serif
-  -webkit-font-smoothing antialiased
-  -moz-osx-font-smoothing grayscale
-  text-align center
-  color #2c3e50
-  margin-top 60px
+  margin: 0 auto
+  padding: var(--sl-spacing-xxx-large) var(--sl-spacing-medium)
 </style>

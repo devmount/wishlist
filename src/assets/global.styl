@@ -1,0 +1,90 @@
+// basic variables
+break = 680px
+
+// general
+:root
+  font-size: 16px
+  --sl-spacing-larger: 1.5rem
+
+body
+  font-family: var(--sl-font-sans)
+  -webkit-font-smoothing: antialiased
+  -moz-osx-font-smoothing: grayscale
+  color: var(--sl-color-gray-800)
+
+// headings
+h1
+  font-size: var(--sl-font-size-xxxx-large)
+  font-weight: var(--sl-font-weight-light)
+  margin-bottom: var(--sl-spacing-xx-large)
+h2
+  font-size: var(--sl-font-size-xx-large)
+  font-weight: var(--sl-font-weight-light)
+h3
+  font-size: var(--sl-font-size-large)
+  font-weight: var(--sl-font-weight-semibold)
+h1, h2, h3
+  margin-top: 0
+a, a:visited
+  color: var(--sl-color-primary-500)
+  text-decoration: none
+pre
+  padding: var(--sl-spacing-small)
+  background: var(--sl-color-gray-50)
+
+// spacing
+.m-none
+  margin: 0
+.mr-s
+  margin-right: var(--sl-spacing-small)
+.mr-auto
+  margin-right: auto
+.mb-xxs
+  margin-bottom: var(--sl-spacing-xx-small)
+.mb-m
+  margin-bottom: var(--sl-spacing-medium)
+.mb-xxxl
+  margin-bottom: var(--sl-spacing-xxx-large)
+.ml-m
+  margin-left: var(--sl-spacing-medium)
+.gap-m
+  gap: var(--sl-spacing-medium)
+
+// positioning
+.content-center
+  text-align: center
+.d-flex
+  display: flex
+.flex-wrap
+  flex-wrap: wrap
+.align-items-center
+  align-items: center
+.justify-end
+  justify-content: flex-end
+.d-grid
+  display: grid
+.two-col
+  grid-template-columns: 1fr 50%
+
+// sizing
+.font-xl
+  font-size: var(--sl-font-size-x-large)
+.font-xxxl
+  font-size: var(--sl-font-size-xxx-large)
+.grow-1
+  flex-grow: 1
+.grow-5
+  flex-grow: 5
+.width-half
+  width: 50%
+.width-full
+  width: 100%
+.height-lr
+  height: var(--sl-spacing-larger)
+
+// text
+.text-overflow-ellipsis
+  display: inline-block
+  overflow: hidden
+  text-overflow: ellipsis
+  white-space: nowrap
