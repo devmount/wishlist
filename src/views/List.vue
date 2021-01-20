@@ -50,26 +50,28 @@
           <sl-button v-if="admin" class="mr-auto" type="primary" size="large" @click="editItem(i)">
             <sl-icon name="pencil"></sl-icon>
           </sl-button>
-          <sl-button type="info" size="large" @click="setReserved(i)">
-            <template v-if="i.state != 'reserved'">
-              <sl-icon class="font-xl" slot="suffix" name="patch-exclamation"></sl-icon>
-              Reserviere ich
-            </template>
-            <template v-else>
-              <sl-icon class="font-xl" slot="suffix" name="patch-minus"></sl-icon>
-              Doch nicht reserviert
-            </template>
-          </sl-button>
-          <sl-button type="primary" size="large" @click="setPurchased(i)">
-            <template v-if="i.state != 'purchased'">
-              <sl-icon class="font-xl" slot="suffix" name="cart-check"></sl-icon>
-              Habe ich gekauft
-            </template>
-            <template v-else>
-              <sl-icon class="font-xl" slot="suffix" name="cart-dash"></sl-icon>
-              Doch nicht gekauft
-            </template>
-          </sl-button>
+          <sl-button-group>
+            <sl-button type="info" size="large" @click="setReserved(i)">
+              <template v-if="i.state != 'reserved'">
+                <sl-icon class="font-xl" slot="suffix" name="patch-exclamation"></sl-icon>
+                Reserviere ich
+              </template>
+              <template v-else>
+                <sl-icon class="font-xl" slot="suffix" name="patch-minus"></sl-icon>
+                Doch nicht reserviert
+              </template>
+            </sl-button>
+            <sl-button type="primary" size="large" @click="setPurchased(i)">
+              <template v-if="i.state != 'purchased'">
+                <sl-icon class="font-xl" slot="suffix" name="cart-check"></sl-icon>
+                Habe ich gekauft
+              </template>
+              <template v-else>
+                <sl-icon class="font-xl" slot="suffix" name="cart-dash"></sl-icon>
+                Doch nicht gekauft
+              </template>
+            </sl-button>
+          </sl-button-group>
         </footer>
       </sl-details>
     </section>
