@@ -21,11 +21,16 @@
       </sl-button>
     </section>
     <section ref="wishlist" class="mb-xxxl">
-      <sl-details class="mb-xxs" v-for="(i, n) in items" :key="i.id">
+      <sl-details class="item mb-xxs" v-for="(i, n) in items" :key="i.id" :reserved="i.reserved">
+        <!-- item title and flag -->
         <header slot="summary" class="d-flex align-items-center gap-m">
-          <sl-icon name="circle" class="font-xl"></sl-icon>
+          <sl-icon v-if="i.bought" name="check-circle" class="font-xl"></sl-icon>
+          <sl-icon v-else-if="i.reserved" name="exclamation-circle" class="font-xl"></sl-icon>
+          <sl-icon v-else name="circle" class="font-xl"></sl-icon>
           <h3 class="m-none">{{ i.title }}</h3>
+          <sl-badge v-if="i.reserved" type="info">RESERVIERT</sl-badge>
         </header>
+        <!-- item information -->
         <main class="d-grid gap-m two-col mb-m">
           <div>
             {{ i.description }}
@@ -36,6 +41,7 @@
             </a>
           </div>
         </main>
+        <!-- flag and manage item -->
         <footer class="d-flex justify-end flex-wrap gap-m">
           <sl-button v-if="admin" type="danger" size="large" @click="deleteItem(i.id)">
             <sl-icon name="trash"></sl-icon>
@@ -43,9 +49,15 @@
           <sl-button v-if="admin" class="mr-auto" type="primary" size="large" @click="editItem(i)">
             <sl-icon name="pencil"></sl-icon>
           </sl-button>
-          <sl-button type="info" size="large" @click="reserveItem(i)">
-            <sl-icon class="font-xl" slot="suffix" name="patch-exclamation"></sl-icon>
-            Reserviere ich
+          <sl-button type="info" size="large" @click="toggleReservation(i)">
+            <template v-if="!i.reserved">
+              <sl-icon class="font-xl" slot="suffix" name="patch-exclamation"></sl-icon>
+              Reserviere ich
+            </template>
+            <template v-else>
+              <sl-icon class="font-xl" slot="suffix" name="patch-minus"></sl-icon>
+              Doch nicht reserviert
+            </template>
           </sl-button>
           <sl-button type="primary" size="large" @click="boughtItem(i)">
             <sl-icon class="font-xl" slot="suffix" name="cart-check"></sl-icon>
@@ -142,9 +154,9 @@ export default {
       this.mode = 'UPDATE'
       this.target = i.id
     },
-    // set item reserved
-    async reserveItem (item) {
-      item.reserved = true
+    // toggle item reserved flag
+    async toggleReservation (item) {
+      item.reserved = !item.reserved
       await this.$supabase.from('items').update([ item ]).match({ id: item.id })
     },
     // set item bought
@@ -207,4 +219,10 @@ export default {
 </script>
 
 <style lang="stylus">
+.item
+  border-top-left-radius: var(--sl-border-radius-medium)
+  &[reserved=true]
+    background: linear-gradient(135deg, var(--sl-color-gray-500) 0%, var(--sl-color-gray-500) 24px, transparent 24px);
+    h3
+      color: var(--sl-color-gray-400)
 </style>
