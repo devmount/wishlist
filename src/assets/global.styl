@@ -11,6 +11,7 @@ body
   -webkit-font-smoothing: antialiased
   -moz-osx-font-smoothing: grayscale
   color: var(--sl-color-gray-800)
+  margin: 0
 
 // headings
 h1
@@ -28,6 +29,9 @@ h1, h2, h3
 a, a:visited
   color: var(--sl-color-primary-500)
   text-decoration: none
+  &:hover
+    color: var(--sl-color-primary-300)
+
 pre
   padding: var(--sl-spacing-small)
   background: var(--sl-color-gray-50)

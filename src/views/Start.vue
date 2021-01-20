@@ -55,7 +55,6 @@
       Momentan sind hier keine Listen gespeichert.
     </div>
   </section>
-  <footer></footer>
 </template>
 
 <script>
