@@ -21,7 +21,7 @@
       </sl-button>
     </section>
     <section ref="wishlist" class="mb-xxxl">
-      <sl-details class="item mb-xxs" v-for="(i, n) in items" :key="i.id" :reserved="i.reserved">
+      <sl-details class="item mb-xxs" v-for="(i, n) in items" :key="i.id" :reserved="i.reserved" :bought="i.bought">
         <!-- item title and flag -->
         <header slot="summary" class="d-flex align-items-center gap-m">
           <sl-icon v-if="i.bought" name="check-circle" class="font-xl"></sl-icon>
@@ -29,6 +29,7 @@
           <sl-icon v-else name="circle" class="font-xl"></sl-icon>
           <h3 class="m-none">{{ i.title }}</h3>
           <sl-badge v-if="i.reserved" type="info">RESERVIERT</sl-badge>
+          <sl-badge v-if="i.bought" type="primary">GEKAUFT</sl-badge>
         </header>
         <!-- item information -->
         <main class="d-grid gap-m two-col mb-m">
@@ -59,9 +60,15 @@
               Doch nicht reserviert
             </template>
           </sl-button>
-          <sl-button type="primary" size="large" @click="boughtItem(i)">
-            <sl-icon class="font-xl" slot="suffix" name="cart-check"></sl-icon>
-            Habe ich gekauft
+          <sl-button type="primary" size="large" @click="togglePurchase(i)">
+            <template v-if="!i.bought">
+              <sl-icon class="font-xl" slot="suffix" name="cart-check"></sl-icon>
+              Habe ich gekauft
+            </template>
+            <template v-else>
+              <sl-icon class="font-xl" slot="suffix" name="cart-dash"></sl-icon>
+              Doch nicht gekauft
+            </template>
           </sl-button>
         </footer>
       </sl-details>
@@ -159,9 +166,9 @@ export default {
       item.reserved = !item.reserved
       await this.$supabase.from('items').update([ item ]).match({ id: item.id })
     },
-    // set item bought
-    async boughtItem (item) {
-      item.bought = true
+    // toggle item bought flag
+    async togglePurchase (item) {
+      item.bought = !item.bought
       await this.$supabase.from('items').update([ item ]).match({ id: item.id })
     },
     // delete existing item
@@ -221,8 +228,14 @@ export default {
 <style lang="stylus">
 .item
   border-top-left-radius: var(--sl-border-radius-medium)
-  &[reserved=true]
+  &[reserved=true][bought=false]
     background: linear-gradient(135deg, var(--sl-color-gray-500) 0%, var(--sl-color-gray-500) 24px, transparent 24px);
     h3
       color: var(--sl-color-gray-400)
+  &[bought=true]
+    background: linear-gradient(135deg, var(--sl-color-primary-500) 0%, var(--sl-color-primary-500) 24px, transparent 24px);
+    h3
+      color: var(--sl-color-gray-400)
+      text-decoration: line-through
+      
 </style>
