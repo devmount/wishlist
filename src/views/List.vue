@@ -45,7 +45,9 @@
             {{ i.description }}
           </div>
           <div>
-            <a class="d-flex mb-xxs" v-for="l in i.links" :href="l" target="_blank">
+            Hier kann man das kaufen:
+            <a class="d-flex align-items-center mt-xxs" v-for="l in i.links" :href="l" target="_blank">
+              <sl-icon name="link-45deg" class="shrink-0 font-l mt-xxxs mr-xs"></sl-icon>
               <span class="text-overflow-ellipsis">{{ l }}</span>
             </a>
           </div>
