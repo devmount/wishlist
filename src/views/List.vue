@@ -1,5 +1,13 @@
 <template>
-  <div v-if="list && list.id">
+  <div v-if="loading">
+    <header class="content-center mb-xxxl">
+      <Logo />
+      <div class="mt-xxl">
+        <sl-spinner class="font-xxxl"></sl-spinner>
+      </div>
+    </header>
+  </div>
+  <div v-else-if="list && list.id">
     <header class="content-center mb-xxxl">
       <Logo />
       <h1>{{ list.title }}</h1>
@@ -94,8 +102,15 @@
     </section>
   </div>
   <div v-else>
-    Diese Liste existiert nicht mehr oder der Link ist ungültig.
-   <router-link to="/">Neustart</router-link>
+    <header class="content-center mb-xxxl">
+      <Logo />
+      <h1>Was zum ... ?</h1>
+      <p>
+        Diese Liste existiert nicht mehr oder der Link ist ungültig.
+        Bitte prüfe den Link oder frage bei der Person nach, die ihn dir geschickt hat.
+        Wenn alles nichts hilft, <router-link to="/">starte von vorn.</router-link>
+      </p>
+    </header>
   </div>
 </template>
 
@@ -107,6 +122,7 @@ export default {
   name: 'App',
   components: { Logo },
   data: () => ({
+    loading: true,
     list: null,
     items: [],
     input: {},
@@ -122,6 +138,8 @@ export default {
     await this.getItems()
     // init input
     this.input = JSON.parse(JSON.stringify(this.initItem))
+    // finished loading
+    this.loading = false
   },
   methods: {
     // retrieve list object
