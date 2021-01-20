@@ -114,6 +114,23 @@
       Diese Wunschliste wurde <sl-relative-time :date="list.created" locale="de"></sl-relative-time>
       am <sl-format-date :date="list.created" month="long" day="numeric" year="numeric" locale="de"></sl-format-date> erstellt
     </section>
+    <div class="admin p-fixed-top-right">
+      <sl-button v-if="admin" type="text" @click="this.$refs.drawer.show()">
+        <sl-icon class="font-xxl" name="list"></sl-icon>
+      </sl-button>
+    </div>
+    <sl-drawer ref="drawer" label="Administration" class="drawer-overview">
+      <h3>Bearbeite deine Wunschliste</h3>
+      <div v-if="list && list.id" class="d-flex-column gap-m mb-m">
+        <sl-input type="text" v-model="list.title" placeholder="Titel"></sl-input>
+        <sl-textarea v-model="list.description" placeholder="Beschreibung" rows="3" resize="auto"></sl-textarea>
+      </div>
+      <sl-button type="primary" size="large" @click="syncList()">
+          <sl-icon class="font-xl" slot="suffix" name="pencil"></sl-icon>
+          Wunschliste anpassen
+      </sl-button>
+      <sl-button slot="footer" type="default">Schließen</sl-button>
+    </sl-drawer>
   </div>
   <div v-else>
     <header class="content-center mb-xxxl">
@@ -122,7 +139,7 @@
       <p>
         Diese Liste existiert nicht mehr oder der Link ist ungültig.
         Bitte prüfe den Link oder frage bei der Person nach, die ihn dir geschickt hat.
-        Wenn alles nichts hilft, <router-link to="/">starte von vorn.</router-link>
+        Wenn alles nichts hilft, <router-link to="/">starte von vorn</router-link>.
       </p>
     </header>
   </div>
@@ -166,6 +183,13 @@ export default {
         this.list = null
       }
     },
+    // edit list
+    async syncList () {
+      await this.$supabase
+        .from('lists')
+        .update({ title: this.list.title, description: this.list.description })
+        .match({ id: this.list.id })
+    },
     // retrieve list of item objects
     async getItems () {
       if (this.list && this.list.id) {
@@ -173,15 +197,16 @@ export default {
         this.items = items.sort((a,b) => a.created < b.created)
       }
     },
-    // store new item
+    // store new or edit existing item
     async syncItem () {
       switch (this.mode) {
         case 'INSERT':
-          await this.$supabase.from('items').insert([ this.processedInput ]); break
+          await this.$supabase.from('items').insert([ this.processedInput ])
+          break
         case 'UPDATE':
-          await this.$supabase.from('items').update([ this.processedInput ]).match({ id: this.target }); break
-        default:
-          break;
+          await this.$supabase.from('items').update([ this.processedInput ]).match({ id: this.target })
+          break
+        default: break
       }
       this.input = JSON.parse(JSON.stringify(this.initItem))
       this.mode = 'INSERT'
