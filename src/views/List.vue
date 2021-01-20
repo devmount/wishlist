@@ -1,38 +1,75 @@
 <template>
   <div v-if="list && list.id">
-    <header>
+    <header class="content-center mb-xxxl">
+      <Logo />
       <h1>{{ list.title }}</h1>
       <p>{{ list.description }}</p>
     </header>
-    <section v-if="admin">
-      <input type="text" v-model="input.title" placeholder="title" />
-      <input type="text" v-model="input.description" placeholder="description" />
-      <input type="text" v-model="input.links" placeholder="url, url" />
-      <button @click="syncItem()">Wunsch hinzufügen</button>
-    </section>
-    <section class="list">
-      <div class="item" v-for="(i, n) in items" :key="i.id">
-        <h2>#{{ i.id }} {{ i.title }}</h2>
-        <div>
-          {{ i.description }}
-          <span v-for="l in i.links"><a :href="l" target="_blank">Shop</a></span>
-          <span v-show="i.reserved">R</span>
-          <span v-show="i.bought">K</span>
-        </div>
-        <div>
-          <button @click="reserveItem(i)">Reservieren</button>
-          <button @click="boughtItem(i)">Gekauft</button>
-        </div>
-        <div v-if="admin">
-          <button @click="editItem(i)">Bearbeiten</button>
-          <button @click="deleteItem(i.id)">Löschen</button>
-        </div>
+    <section v-if="admin" class="mb-xxxl">
+      <h2>
+        <sl-icon class="font-xl" name="bag-plus"></sl-icon>
+        Füge einen Wunsch hinzu
+      </h2>
+      <div class="d-flex flex-wrap gap-m mb-m">
+        <sl-input class="grow-1" type="text" v-model="input.title" placeholder="Titel"></sl-input>
+        <sl-input class="grow-5" type="text" v-model="input.description" placeholder="Beschreibung"></sl-input>
       </div>
+      <sl-textarea class="grow-1 mb-m" v-model="input.links" placeholder="Links zum Artikel (ein Link pro Zeile)" rows="1" resize="auto"></sl-textarea>
+      <sl-button type="primary" size="large" @click="syncItem()">
+        <sl-icon class="font-xl" slot="suffix" name="plus"></sl-icon>
+        Wunsch erstellen
+      </sl-button>
     </section>
-    <section v-if="admin">
-      <h3>Teilen</h3>
-      Link zum Teilen: <code>https://wishlist.devmount.de/{{ $route.params.public }}</code><br>
-      Link zum Administrieren: <code>https://wishlist.devmount.de/{{ $route.params.public }}/{{ $route.params.private }}</code>
+    <section ref="wishlist" class="mb-xxxl">
+      <sl-details class="mb-xxs" v-for="(i, n) in items" :key="i.id">
+        <header slot="summary" class="d-flex align-items-center gap-m">
+          <sl-icon name="circle" class="font-xl"></sl-icon>
+          <h3 class="m-none">{{ i.title }}</h3>
+        </header>
+        <main class="d-grid gap-m two-col mb-m">
+          <div>
+            {{ i.description }}
+          </div>
+          <div>
+            <a class="d-flex mb-xxs" v-for="l in i.links" :href="l" target="_blank">
+              <span class="text-overflow-ellipsis">{{ l }}</span>
+            </a>
+          </div>
+        </main>
+        <footer class="d-flex justify-end flex-wrap gap-m">
+          <sl-button v-if="admin" type="danger" size="large" @click="deleteItem(i.id)">
+            <sl-icon name="trash"></sl-icon>
+          </sl-button>
+          <sl-button v-if="admin" class="mr-auto" type="primary" size="large" @click="editItem(i)">
+            <sl-icon name="pencil"></sl-icon>
+          </sl-button>
+          <sl-button type="info" size="large" @click="reserveItem(i)">
+            <sl-icon class="font-xl" slot="suffix" name="patch-exclamation"></sl-icon>
+            Reserviere ich
+          </sl-button>
+          <sl-button type="primary" size="large" @click="boughtItem(i)">
+            <sl-icon class="font-xl" slot="suffix" name="cart-check"></sl-icon>
+            Habe ich gekauft
+          </sl-button>
+        </footer>
+      </sl-details>
+    </section>
+    <section v-if="admin" class="mb-xxxl">
+      <h2>
+        <sl-icon class="font-xl" name="share"></sl-icon>
+        Teile deine Wunschliste
+      </h2>
+      Den öffentlichen Link deiner Wunschliste kannst du hier kopieren und versenden.
+      <pre>{{ publicLink }}</pre><br>
+    </section>
+    <section v-if="admin" class="mb-xxxl">
+      <h2>
+        <sl-icon class="font-xl" name="shield-lock"></sl-icon>
+        Verwalte deine Wunschliste
+      </h2>
+      Bitte bewahre den geheimen Link deiner Wunschliste auf, sodass du später noch Änderungen vornehmen kannst.
+      Dieser Link sollte nicht geteilt werden!
+      <pre>{{ privateLink }}</pre>
     </section>
   </div>
   <div v-else>
@@ -42,8 +79,12 @@
 </template>
 
 <script>
+// import partials
+import Logo from './partials/Logo'
+
 export default {
   name: 'App',
+  components: { Logo },
   data: () => ({
     list: null,
     items: [],
@@ -96,7 +137,7 @@ export default {
     // edit existing item
     editItem (item) {
       let i = JSON.parse(JSON.stringify(item))
-      i.links = item.links.join(',')
+      i.links = item.links.join('\n')
       this.input = i
       this.mode = 'UPDATE'
       this.target = i.id
@@ -133,11 +174,23 @@ export default {
       return {
         title: this.input.title,
         description: this.input.description,
-        links: this.input.links.split(',').map(l => l.trim()),
+        links: this.input.links.split('\n').map(l => l.trim()),
         bought: this.input.bought,
         reserved: this.input.reserved,
         list: this.list.id
       }
+    },
+    // return base url
+    baseUrl () {
+      return document.baseURI.substring(0, document.baseURI.indexOf('/', 7))
+    },
+    // return complete public link for sharing
+    publicLink () {
+      return this.baseUrl + '/' + this.$route.params.public
+    },
+    // return complete private link for administration
+    privateLink () {
+      return this.baseUrl + '/' + this.$route.params.public + '/' + this.$route.params.private
     },
     // check if admin token is given and correct
     admin () {
