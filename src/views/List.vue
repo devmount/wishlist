@@ -106,6 +106,10 @@
       Dieser Link sollte nicht geteilt werden!
       <pre>{{ privateLink }}</pre>
     </section>
+    <section class="content-center font-xs text-gray">
+      Diese Wunschliste wurde <sl-relative-time :date="list.created" locale="de"></sl-relative-time>
+      am <sl-format-date :date="list.created" month="long" day="numeric" year="numeric" locale="de"></sl-format-date> erstellt
+    </section>
   </div>
   <div v-else>
     <header class="content-center mb-xxxl">
