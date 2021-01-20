@@ -99,7 +99,17 @@
         Teile deine Wunschliste
       </h2>
       Den öffentlichen Link deiner Wunschliste kannst du hier kopieren und versenden.
-      <pre>{{ publicLink }}</pre><br>
+      <div class="d-flex align-items-center">
+        <pre class="grow-1">{{ publicLink }}</pre>
+        <sl-button-group>
+          <sl-button class="font-xl" size="medium" @click="copyToClipboard(publicLink)">
+            <sl-icon name="clipboard-plus"></sl-icon>
+          </sl-button>
+          <sl-button class="font-xl" size="medium" @click="sendEmail(publicLink)">
+            <sl-icon name="envelope"></sl-icon>
+          </sl-button>
+        </sl-button-group>
+      </div>
     </section>
     <section v-if="admin" class="mb-xxxl">
       <h2>
@@ -108,7 +118,12 @@
       </h2>
       Bitte bewahre den geheimen Link deiner Wunschliste auf, sodass du später noch Änderungen vornehmen kannst.
       Dieser Link sollte nicht geteilt werden!
-      <pre>{{ privateLink }}</pre>
+      <div class="d-flex align-items-center">
+        <pre class="grow-1">{{ privateLink }}</pre>
+        <sl-button class="font-xl" size="medium" @click="copyToClipboard(privateLink)">
+          <sl-icon name="clipboard-plus"></sl-icon>
+        </sl-button>
+      </div>
     </section>
     <section class="content-center font-xs text-gray">
       Diese Wunschliste wurde <sl-relative-time :date="list.created" locale="de"></sl-relative-time>
@@ -234,6 +249,12 @@ export default {
     async deleteItem (id) {
       await this.$supabase.from('items').delete().match({ id: id })
     },
+    copyToClipboard (text) {
+      navigator.clipboard.writeText(text)
+    },
+    sendEmail (text) {
+      window.location = "mailto:?subject=Meine Wunschliste: " + this.list.title + "&body=" + text
+    }
   },
   computed: {
     // initial item object
