@@ -223,12 +223,12 @@ export default {
     // set item state to reserved
     async setReserved (item) {
       item.state = item.state == 'reserved' ? 'open' : 'reserved'
-      await this.$supabase.from('items').update([ item ]).match({ id: item.id })
+      await this.$supabase.from('items').update({ state: item.state }).match({ id: item.id })
     },
     // set item state to purchased
     async setPurchased (item) {
       item.state = item.state == 'purchased' ? 'open' : 'purchased'
-      await this.$supabase.from('items').update([ item ]).match({ id: item.id })
+      await this.$supabase.from('items').update({ state: item.state }).match({ id: item.id })
     },
     // delete existing item
     async deleteItem (id) {
