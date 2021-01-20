@@ -170,7 +170,7 @@ export default {
     async getItems () {
       if (this.list && this.list.id) {
         let { data: items, error } = await this.$supabase.from('items').select('*').filter('list', 'eq', this.list.id)
-        this.items = items
+        this.items = items.sort((a,b) => a.created < b.created)
       }
     },
     // store new item
