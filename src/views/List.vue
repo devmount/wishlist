@@ -41,8 +41,12 @@
         </header>
         <!-- item information -->
         <main class="d-grid gap-m two-col mb-m">
-          <div>
+          <div class="d-flex-column justify-space-between gap-m">
             {{ i.description }}
+            <div class="font-xs text-gray">
+              Erstellt am <sl-format-date :date="i.created" month="long" day="numeric" year="numeric" locale="de"></sl-format-date><br>
+              Letzte Aktivität <sl-relative-time :date="i.modified" locale="de"></sl-relative-time>
+            </div>
           </div>
           <div>
             Hier kann man das kaufen:
