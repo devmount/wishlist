@@ -21,15 +21,15 @@
       </sl-button>
     </section>
     <section ref="wishlist" class="mb-xxxl">
-      <sl-details class="item mb-xxs" v-for="(i, n) in items" :key="i.id" :reserved="i.reserved" :bought="i.bought">
+      <sl-details class="item mb-xxs" v-for="(i, n) in items" :key="i.id" :reserved="i.state == 'reserved'" :purchased="i.state == 'purchased'">
         <!-- item title and flag -->
         <header slot="summary" class="d-flex align-items-center gap-m">
-          <sl-icon v-if="i.bought" name="check-circle" class="font-xl"></sl-icon>
-          <sl-icon v-else-if="i.reserved" name="exclamation-circle" class="font-xl"></sl-icon>
+          <sl-icon v-if="i.state == 'purchased'" name="check-circle" class="font-xl"></sl-icon>
+          <sl-icon v-else-if="i.state == 'reserved'" name="exclamation-circle" class="font-xl"></sl-icon>
           <sl-icon v-else name="circle" class="font-xl"></sl-icon>
           <h3 class="m-none">{{ i.title }}</h3>
-          <sl-badge v-if="i.reserved" type="info">RESERVIERT</sl-badge>
-          <sl-badge v-if="i.bought" type="primary">GEKAUFT</sl-badge>
+          <sl-badge v-if="i.state == 'reserved'" type="info">RESERVIERT</sl-badge>
+          <sl-badge v-if="i.state == 'purchased'" type="primary">GEKAUFT</sl-badge>
         </header>
         <!-- item information -->
         <main class="d-grid gap-m two-col mb-m">
@@ -50,8 +50,8 @@
           <sl-button v-if="admin" class="mr-auto" type="primary" size="large" @click="editItem(i)">
             <sl-icon name="pencil"></sl-icon>
           </sl-button>
-          <sl-button type="info" size="large" @click="toggleReservation(i)">
-            <template v-if="!i.reserved">
+          <sl-button type="info" size="large" @click="setReserved(i)">
+            <template v-if="i.state != 'reserved'">
               <sl-icon class="font-xl" slot="suffix" name="patch-exclamation"></sl-icon>
               Reserviere ich
             </template>
@@ -60,8 +60,8 @@
               Doch nicht reserviert
             </template>
           </sl-button>
-          <sl-button type="primary" size="large" @click="togglePurchase(i)">
-            <template v-if="!i.bought">
+          <sl-button type="primary" size="large" @click="setPurchased(i)">
+            <template v-if="i.state != 'purchased'">
               <sl-icon class="font-xl" slot="suffix" name="cart-check"></sl-icon>
               Habe ich gekauft
             </template>
@@ -161,14 +161,14 @@ export default {
       this.mode = 'UPDATE'
       this.target = i.id
     },
-    // toggle item reserved flag
-    async toggleReservation (item) {
-      item.reserved = !item.reserved
+    // set item state to reserved
+    async setReserved (item) {
+      item.state = item.state == 'reserved' ? 'open' : 'reserved'
       await this.$supabase.from('items').update([ item ]).match({ id: item.id })
     },
-    // toggle item bought flag
-    async togglePurchase (item) {
-      item.bought = !item.bought
+    // set item state to purchased
+    async setPurchased (item) {
+      item.state = item.state == 'purchased' ? 'open' : 'purchased'
       await this.$supabase.from('items').update([ item ]).match({ id: item.id })
     },
     // delete existing item
@@ -183,8 +183,6 @@ export default {
         title: '',
         description: '',
         links: '',
-        bought: false,
-        reserved: false,
         list: null
       }
     },
@@ -194,8 +192,6 @@ export default {
         title: this.input.title,
         description: this.input.description,
         links: this.input.links.split('\n').map(l => l.trim()),
-        bought: this.input.bought,
-        reserved: this.input.reserved,
         list: this.list.id
       }
     },
@@ -228,11 +224,11 @@ export default {
 <style lang="stylus">
 .item
   border-top-left-radius: var(--sl-border-radius-medium)
-  &[reserved=true][bought=false]
+  &[reserved=true]
     background: linear-gradient(135deg, var(--sl-color-gray-500) 0%, var(--sl-color-gray-500) 24px, transparent 24px);
     h3
       color: var(--sl-color-gray-400)
-  &[bought=true]
+  &[purchased=true]
     background: linear-gradient(135deg, var(--sl-color-primary-500) 0%, var(--sl-color-primary-500) 24px, transparent 24px);
     h3
       color: var(--sl-color-gray-400)
