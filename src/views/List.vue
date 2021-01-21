@@ -137,8 +137,8 @@
     <sl-drawer ref="drawer" label="Administration" class="drawer-overview">
       <h3>Bearbeite deine Wunschliste</h3>
       <div v-if="list && list.id" class="d-flex-column gap-m mb-m">
-        <sl-input type="text" v-model="list.title" placeholder="Titel"></sl-input>
-        <sl-textarea v-model="list.description" placeholder="Beschreibung" rows="3" resize="auto"></sl-textarea>
+        <sl-input type="text" :value="list.title" @input="list.title = $event.target.value" placeholder="Titel"></sl-input>
+        <sl-textarea :value="list.description" @input="list.description = $event.target.value" placeholder="Beschreibung" rows="3" resize="auto"></sl-textarea>
       </div>
       <sl-button type="primary" size="large" @click="syncList()">
           <sl-icon class="font-xl" slot="suffix" name="pencil"></sl-icon>
