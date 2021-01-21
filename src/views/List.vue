@@ -33,15 +33,22 @@
       </sl-button>
     </section>
     <section ref="wishlist" class="mb-xxxl">
-      <sl-details class="item mb-xxs" v-for="(i, n) in items" :key="i.id" :reserved="i.state == 'reserved'" :purchased="i.state == 'purchased'" @click="closeOtherItems(n)">
+      <sl-details
+        class="item mb-xxs"
+        v-for="(i, n) in items"
+        :key="i.id"
+        :reserved="i.state == 'reserved' && allowed"
+        :purchased="i.state == 'purchased' && allowed"
+        @click="closeOtherItems(n)"
+      >
         <!-- item title and flag -->
         <header slot="summary" class="d-flex align-items-center gap-m">
-          <sl-icon v-if="i.state == 'purchased'" name="check-circle" class="font-xl"></sl-icon>
-          <sl-icon v-else-if="i.state == 'reserved'" name="exclamation-circle" class="font-xl"></sl-icon>
+          <sl-icon v-if="i.state == 'purchased' && allowed" name="check-circle" class="font-xl"></sl-icon>
+          <sl-icon v-else-if="i.state == 'reserved' && allowed" name="exclamation-circle" class="font-xl"></sl-icon>
           <sl-icon v-else name="circle" class="font-xl"></sl-icon>
           <h3 class="m-none">{{ i.title }}</h3>
-          <sl-badge v-if="i.state == 'reserved'" type="info">RESERVIERT</sl-badge>
-          <sl-badge v-if="i.state == 'purchased'" type="primary">GEKAUFT</sl-badge>
+          <sl-badge v-if="i.state == 'reserved' && allowed" type="info">RESERVIERT</sl-badge>
+          <sl-badge v-if="i.state == 'purchased' && allowed" type="primary">GEKAUFT</sl-badge>
         </header>
         <!-- item information -->
         <main class="d-grid gap-m two-col mb-m">
@@ -135,7 +142,7 @@
       </sl-button>
     </div>
     <!-- list administration area -->
-    <sl-drawer ref="drawer" label="Administration" class="drawer-overview">
+    <sl-drawer ref="drawer" label="Administration">
       <h3>Bearbeite deine Wunschliste</h3>
       <div v-if="list && list.id" class="d-flex-column gap-m mb-m">
         <sl-input type="text" :value="list.title" @input="list.title = $event.target.value" placeholder="Titel"></sl-input>
@@ -145,6 +152,9 @@
           <sl-icon class="font-xl" slot="suffix" name="pencil"></sl-icon>
           Wunschliste anpassen
       </sl-button>
+      <h3 class="mt-xxl">Spoiler</h3>
+      <p>Wenn aktiviert, werden alle Reservierungen und Käufe auch in der Verwaltungsansicht der Wunschliste (geheimer Link) angezeigt.</p>
+      <sl-switch style="--width: 80px; --height: 32px; --thumb-size: 26px;" :value="list.spoiler" @input="list.spoiler = !list.spoiler" :checked="list.spoiler"></sl-switch>
     </sl-drawer>
     <!-- item state handling dialog -->
     <sl-dialog ref="dialog">
@@ -354,13 +364,24 @@ export default {
     },
     // check if admin token is given and correct
     admin () {
-      return  this.$route.params.private && this.list.slug_private === this.$route.params.private
+      return this.$route.params.private && this.list.slug_private === this.$route.params.private
+    },
+    // check if public token is given and correct
+    visitor () {
+      return this.$route.params.public && this.list.slug_public === this.$route.params.public && !this.$route.params.private
+    },
+    // approve if something is allowed to be shown
+    allowed () {
+      return this.visitor || this.list.spoiler
     }
   },
   watch: {
     async $route (to, from) {
       await this.getList()
       await this.getItems()
+    },
+    'list.spoiler': async function (newVal, oldVal) {
+      await this.$supabase.from('lists').update({ spoiler: newVal }).match({ id: this.list.id })
     }
   }
 }

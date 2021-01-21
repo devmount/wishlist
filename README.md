@@ -12,6 +12,7 @@
       description text,
       slug_public varchar NOT NULL,
       slug_private varchar NOT NULL,
+      spoiler bool DEFAULT false NOT NULL,
       created TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
     );
     COMMENT ON TABLE lists IS 'Wishlists';
@@ -20,6 +21,7 @@
     COMMENT ON COLUMN lists.description IS 'Longer description of the Wishlist';
     COMMENT ON COLUMN lists.slug_public IS 'URL Segment to build public link';
     COMMENT ON COLUMN lists.slug_private IS 'URL Segment to build private link';
+    COMMENT ON COLUMN lists.spoiler IS 'Show reservations and purchases on private view';
     COMMENT ON COLUMN lists.created IS 'Timestamp of list creation';
     ```
 
