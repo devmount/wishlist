@@ -33,7 +33,7 @@
       </sl-button>
     </section>
     <section ref="wishlist" class="mb-xxxl">
-      <sl-details class="item mb-xxs" v-for="(i, n) in items" :key="i.id" :reserved="i.state == 'reserved'" :purchased="i.state == 'purchased'">
+      <sl-details class="item mb-xxs" v-for="(i, n) in items" :key="i.id" :reserved="i.state == 'reserved'" :purchased="i.state == 'purchased'" @click="closeOtherItems(n)">
         <!-- item title and flag -->
         <header slot="summary" class="d-flex align-items-center gap-m">
           <sl-icon v-if="i.state == 'purchased'" name="check-circle" class="font-xl"></sl-icon>
@@ -249,11 +249,20 @@ export default {
     async deleteItem (id) {
       await this.$supabase.from('items').delete().match({ id: id })
     },
+    // copy given text to system clipboard
     copyToClipboard (text) {
       navigator.clipboard.writeText(text)
     },
+    // send given text as body content in new email
     sendEmail (text) {
       window.location = "mailto:?subject=Meine Wunschliste: " + this.list.title + "&body=" + text
+    },
+    closeOtherItems (index) {
+      [...this.$refs.wishlist.querySelectorAll('sl-details')].map((item, position) => {
+        if (position != index) {
+          item.open = false
+        }
+      })
     }
   },
   computed: {
