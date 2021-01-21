@@ -69,7 +69,7 @@
             <sl-icon name="pencil"></sl-icon>
           </sl-button>
           <sl-button-group>
-            <sl-button type="info" size="large" @click="setReserved(i)">
+            <sl-button type="info" size="large" @click="confirmReserved(i)">
               <template v-if="i.state != 'reserved'">
                 <sl-icon class="font-xl" slot="suffix" name="patch-exclamation"></sl-icon>
                 Reserviere ich
@@ -79,7 +79,7 @@
                 Doch nicht reserviert
               </template>
             </sl-button>
-            <sl-button type="primary" size="large" @click="setPurchased(i)">
+            <sl-button type="primary" size="large" @click="togglePurchased(i)">
               <template v-if="i.state != 'purchased'">
                 <sl-icon class="font-xl" slot="suffix" name="cart-check"></sl-icon>
                 Habe ich gekauft
@@ -134,6 +134,7 @@
         <sl-icon class="font-xxl" name="list"></sl-icon>
       </sl-button>
     </div>
+    <!-- list administration area -->
     <sl-drawer ref="drawer" label="Administration" class="drawer-overview">
       <h3>Bearbeite deine Wunschliste</h3>
       <div v-if="list && list.id" class="d-flex-column gap-m mb-m">
@@ -144,8 +145,27 @@
           <sl-icon class="font-xl" slot="suffix" name="pencil"></sl-icon>
           Wunschliste anpassen
       </sl-button>
-      <sl-button slot="footer" type="default">Schließen</sl-button>
     </sl-drawer>
+    <!-- item state handling dialog -->
+    <sl-dialog ref="dialog">
+      <div slot="label">
+        <span v-if="dialog.action == 'reserve' && dialog.item.state != 'reserved'">Möchtest du reservieren?</span>
+        <span v-if="dialog.action == 'reserve' && dialog.item.state == 'reserved'">Möchtest du die Reservierung aufheben?</span>
+      </div>
+      <div v-if="dialog.action == 'reserve' && dialog.item.state != 'reserved'">
+        Damit markierst du den Wunsch «{{ dialog.item.title }}» für jeden sichtbar als reserviert.
+      </div>
+      <div v-if="dialog.action == 'reserve' && dialog.item.state == 'reserved'">
+        Damit entfernst du die Reservierung für den Wunsch «{{ dialog.item.title }}» und er wird für jeden als verfügbar angezeigt.
+      </div>
+      <div slot="footer">
+        <sl-button type="default" @click="$refs.dialog.hide()" class="mr-s" size="large">Lieber nicht</sl-button>
+        <sl-button v-if="dialog.action == 'reserve'" type="info" size="large" @click="toggleReserved(dialog.item)">
+          <span v-if="dialog.item.state != 'reserved'">Ja, bitte reservieren</span>
+          <span v-if="dialog.item.state == 'reserved'">Ja, Reservierung aufheben</span>
+        </sl-button>
+      </div>
+    </sl-dialog>
   </div>
   <div v-else>
     <header class="content-center mb-xxxl">
@@ -174,6 +194,10 @@ export default {
     input: {},
     mode: 'INSERT',
     target: null,
+    dialog: {
+      item: null,
+      action: '' // [reserve | purchase]
+    }
   }),
   async created () {
     // subscribe to all changes on the lists table and the items table to provide realtime experience
@@ -235,13 +259,19 @@ export default {
       this.mode = 'UPDATE'
       this.target = i.id
     },
-    // set item state to reserved
-    async setReserved (item) {
-      item.state = item.state == 'reserved' ? 'open' : 'reserved'
-      await this.$supabase.from('items').update({ state: item.state }).match({ id: item.id })
+    confirmReserved (item) {
+      this.dialog.item = item
+      this.dialog.action = 'reserve'
+      this.$refs.dialog.show()
     },
-    // set item state to purchased
-    async setPurchased (item) {
+    // set item state to reserved or open and close dialog
+    async toggleReserved (item) {
+      let state = item.state == 'reserved' ? 'open' : 'reserved'
+      await this.$supabase.from('items').update({ state: state }).match({ id: item.id })
+      this.$refs.dialog.hide()
+    },
+    // set item state to purchased or open
+    async togglePurchased (item) {
       item.state = item.state == 'purchased' ? 'open' : 'purchased'
       await this.$supabase.from('items').update({ state: item.state }).match({ id: item.id })
     },
