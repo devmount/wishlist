@@ -79,7 +79,7 @@
                 Doch nicht reserviert
               </template>
             </sl-button>
-            <sl-button type="primary" size="large" @click="togglePurchased(i)">
+            <sl-button type="primary" size="large" @click="confirmPurchased(i)">
               <template v-if="i.state != 'purchased'">
                 <sl-icon class="font-xl" slot="suffix" name="cart-check"></sl-icon>
                 Habe ich gekauft
@@ -151,18 +151,36 @@
       <div slot="label">
         <span v-if="dialog.action == 'reserve' && dialog.item.state != 'reserved'">Möchtest du reservieren?</span>
         <span v-if="dialog.action == 'reserve' && dialog.item.state == 'reserved'">Möchtest du die Reservierung aufheben?</span>
+        <span v-if="dialog.action == 'purchase' && dialog.item.state != 'purchased'">Als gekauft markieren?</span>
+        <span v-if="dialog.action == 'purchase' && dialog.item.state == 'purchased'">Den Kauf stornieren?</span>
       </div>
-      <div v-if="dialog.action == 'reserve' && dialog.item.state != 'reserved'">
-        Damit markierst du den Wunsch «{{ dialog.item.title }}» für jeden sichtbar als reserviert.
+      <div v-if="dialog.action == 'reserve'">
+        <span v-if="dialog.item.state != 'reserved'">
+          Damit markierst du den Wunsch «{{ dialog.item.title }}» für jeden sichtbar als reserviert.
+        </span>
+        <span v-if="dialog.item.state == 'reserved'">
+          Damit entfernst du die Reservierung für den Wunsch «{{ dialog.item.title }}»
+          und er wird für jeden wieder als verfügbar angezeigt.
+        </span>
       </div>
-      <div v-if="dialog.action == 'reserve' && dialog.item.state == 'reserved'">
-        Damit entfernst du die Reservierung für den Wunsch «{{ dialog.item.title }}» und er wird für jeden als verfügbar angezeigt.
+      <div v-if="dialog.action == 'purchase'">
+        <span v-if="dialog.item.state != 'purchased'">
+          Damit markierst du den Wunsch «{{ dialog.item.title }}» für jeden sichtbar als gekauft.
+        </span>
+        <span v-if="dialog.item.state == 'purchased'">
+          Damit ist der Wunsch «{{ dialog.item.title }}» nicht mehr als gekauft markiert
+          und er wird für jeden wieder als verfügbar angezeigt.
+        </span>
       </div>
       <div slot="footer">
         <sl-button type="default" @click="$refs.dialog.hide()" class="mr-s" size="large">Lieber nicht</sl-button>
         <sl-button v-if="dialog.action == 'reserve'" type="info" size="large" @click="toggleReserved(dialog.item)">
           <span v-if="dialog.item.state != 'reserved'">Ja, bitte reservieren</span>
           <span v-if="dialog.item.state == 'reserved'">Ja, Reservierung aufheben</span>
+        </sl-button>
+        <sl-button v-if="dialog.action == 'purchase'" type="primary" size="large" @click="togglePurchased(dialog.item)">
+          <span v-if="dialog.item.state != 'purchased'">Ja, hab ich gekauft</span>
+          <span v-if="dialog.item.state == 'purchased'">Ja, der Kauf hat nicht geklappt</span>
         </sl-button>
       </div>
     </sl-dialog>
@@ -259,6 +277,7 @@ export default {
       this.mode = 'UPDATE'
       this.target = i.id
     },
+    // open dialog for reservation confirmation
     confirmReserved (item) {
       this.dialog.item = item
       this.dialog.action = 'reserve'
@@ -270,10 +289,17 @@ export default {
       await this.$supabase.from('items').update({ state: state }).match({ id: item.id })
       this.$refs.dialog.hide()
     },
+    // open dialog for purchase confirmation
+    confirmPurchased (item) {
+      this.dialog.item = item
+      this.dialog.action = 'purchase'
+      this.$refs.dialog.show()
+    },
     // set item state to purchased or open
     async togglePurchased (item) {
-      item.state = item.state == 'purchased' ? 'open' : 'purchased'
-      await this.$supabase.from('items').update({ state: item.state }).match({ id: item.id })
+      let state = item.state == 'purchased' ? 'open' : 'purchased'
+      await this.$supabase.from('items').update({ state: state }).match({ id: item.id })
+      this.$refs.dialog.hide()
     },
     // delete existing item
     async deleteItem (id) {
