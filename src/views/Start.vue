@@ -8,9 +8,29 @@
       <sl-icon class="font-xl" name="lightning"></sl-icon>
       Starte eine neue Liste
     </h2>
-    <sl-form class="form-overview">
-      <sl-input class="mb-m" type="text" :value="input.title" @input="input.title = $event.target.value" placeholder="Titel"></sl-input>
-      <sl-textarea class="mb-m" :value="input.description" @input="input.description = $event.target.value" placeholder="Beschreibung" rows="1" resize="auto"></sl-textarea>
+    <p>
+      Gib einen kurzen Titel für deine Wunschliste an.
+      Optional kannst du den Beschreibungstext nutzen, um die Besucher deiner Wunschliste zu informieren,
+      was dir beim Schenken wichtig ist.
+    </p>
+    <sl-form>
+      <sl-input
+        ref="input-title"
+        class="mb-m"
+        type="text"
+        :value="input.title"
+        @input="input.title = $event.target.value"
+        placeholder="Titel der Liste"
+        required
+      ></sl-input>
+      <sl-textarea
+        class="mb-m"
+        :value="input.description"
+        @input="input.description = $event.target.value"
+        placeholder="Beschreibung (optional)"
+        rows="1"
+        resize="auto"
+      ></sl-textarea>
       <sl-button type="primary" size="large" @click="addList()">
         <sl-icon slot="suffix" name="caret-right-fill"></sl-icon>
         Los geht's
@@ -82,17 +102,24 @@ export default {
     },
     // store new list in database
     async addList () {
-      const slugPublic = this.generateSlug(10)
-      const slugPrivate = this.generateSlug(16)
-      const { data, error } = await this.$supabase.from('lists').insert({
-        'title': this.input.title,
-        'description': this.input.description,
-        'slug_public': slugPublic,
-        'slug_private': slugPrivate,
-      })
-      if (!error) {
-        this.storeLocalListEntry(data[0])
-        this.$router.push('/' + slugPublic + '/' + slugPrivate)
+      let valid = await this.$refs['input-title'].reportValidity()
+      if (valid) {
+        const slugPublic = this.generateSlug(10)
+        const slugPrivate = this.generateSlug(16)
+        const { data, error } = await this.$supabase.from('lists').insert({
+          'title': this.input.title,
+          'description': this.input.description,
+          'slug_public': slugPublic,
+          'slug_private': slugPrivate,
+        })
+        if (!error) {
+          this.storeLocalListEntry(data[0])
+          let self = this
+          // workaround for race condition but in vue router
+          setTimeout(function() {
+            self.$router.push({ name: 'private', params: { public: slugPublic, private: slugPrivate }})
+          }, 100);
+        }
       }
     },
     // store added <list> in local storage
