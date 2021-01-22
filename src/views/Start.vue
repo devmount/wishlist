@@ -16,7 +16,7 @@
     <sl-form>
       <sl-input
         ref="input-title"
-        class="mb-m"
+        class="check-input mb-m"
         type="text"
         :value="input.title"
         @input="input.title = $event.target.value"

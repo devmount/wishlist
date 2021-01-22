@@ -19,10 +19,33 @@
         Füge einen Wunsch hinzu
       </h2>
       <div class="d-flex flex-wrap gap-m mb-m">
-        <sl-input class="grow-1" type="text" :value="input.item.data.title" @input="input.item.data.title = $event.target.value" placeholder="Titel"></sl-input>
-        <sl-input class="grow-5" type="text" :value="input.item.data.description" @input="input.item.data.description = $event.target.value" placeholder="Beschreibung"></sl-input>
+        <sl-input
+          ref="input-item-title"
+          class="check-input grow-1"
+          type="text"
+          :value="input.item.data.title"
+          @input="input.item.data.title = $event.target.value"
+          placeholder="Titel"
+          required
+        ></sl-input>
+        <sl-input
+          class="grow-5"
+          type="text"
+          :value="input.item.data.description"
+          @input="input.item.data.description = $event.target.value"
+          placeholder="Beschreibung (optional)"
+        ></sl-input>
       </div>
-      <sl-textarea class="grow-1 mb-m" :value="input.item.data.links" @input="input.item.data.links = $event.target.value" placeholder="Link Adressen zum Artikel (ein Link pro Zeile)" rows="1" resize="auto"></sl-textarea>
+      <sl-textarea
+        ref="input-item-links"
+        class="check-input grow-1 mb-m"
+        :value="input.item.data.links"
+        @input="input.item.data.links = $event.target.value"
+        placeholder="Link Adressen zum Artikel (ein Link pro Zeile)"
+        rows="1"
+        resize="auto"
+        required
+      ></sl-textarea>
       <sl-button v-if="input.item.mode=='UPDATE'" type="primary" size="large" @click="syncItem()">
           <sl-icon class="font-xl" slot="suffix" name="pencil"></sl-icon>
           Wunsch anpassen
@@ -146,6 +169,7 @@
       <h3>Bearbeite deine Wunschliste</h3>
       <div v-if="list && list.id" class="d-flex-column gap-m mb-m">
         <sl-input
+          class="check-input"
           ref="input-list-title"
           type="text"
           :value="input.list.title"
@@ -298,25 +322,29 @@ export default {
     },
     // store new or edit existing item
     async syncItem () {
-      // get and preprocess item data
-      let i = JSON.parse(JSON.stringify(this.input.item.data))
-      i.links = i.links.split('\n').map(l => l.trim())
-      // check if new or edited item
-      switch (this.input.item.mode) {
-        case 'INSERT':
-          const insertResult = await this.$supabase.from('items').insert(i)
-          if (insertResult.error) console.log(insertResult.error)
-          break
-        case 'UPDATE':
-          const updateResult = await this.$supabase.from('items').update(i).match({ id: this.input.item.target })
-          if (updateResult.error) console.log(updateResult.error)
-          break
-        default: break
+      const validLinks = await this.$refs['input-item-links'].reportValidity()
+      const validTitle = await this.$refs['input-item-title'].reportValidity()
+      if (validTitle && validLinks) {
+        // if valid input: get and preprocess item data
+        let i = JSON.parse(JSON.stringify(this.input.item.data))
+        i.links = i.links.split('\n').map(l => l.trim())
+        // check if new or edited item
+        switch (this.input.item.mode) {
+          case 'INSERT':
+            const insertResult = await this.$supabase.from('items').insert(i)
+            if (insertResult.error) console.log(insertResult.error)
+            break
+          case 'UPDATE':
+            const updateResult = await this.$supabase.from('items').update(i).match({ id: this.input.item.target })
+            if (updateResult.error) console.log(updateResult.error)
+            break
+          default: break
+        }
+        // reset form
+        this.input.item.data = JSON.parse(JSON.stringify(this.initItem))
+        this.input.item.mode = 'INSERT'
+        this.input.item.target = null
       }
-      // reset form
-      this.input.item.data = JSON.parse(JSON.stringify(this.initItem))
-      this.input.item.mode = 'INSERT'
-      this.input.item.target = null
     },
     // edit existing item
     editItem (item) {
