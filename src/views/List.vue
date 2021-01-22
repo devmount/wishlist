@@ -163,12 +163,13 @@
       Diese Wunschliste wurde <sl-relative-time :date="list.created" locale="de"></sl-relative-time>
       am <sl-format-date :date="list.created" month="long" day="numeric" year="numeric" locale="de"></sl-format-date> erstellt
     </section>
+    <!-- admin area trigger -->
     <div class="admin p-fixed-top-right">
-      <sl-button v-if="admin" type="text" @click="$refs.drawer.show()">
-        <sl-icon class="font-xxl" name="list"></sl-icon>
-      </sl-button>
+      <div v-if="admin" class="menu" @click="$refs.drawer.show()">
+        <sl-icon class="font-xxxl" name="list"></sl-icon>
+      </div>
     </div>
-    <!-- list administration area -->
+    <!-- admin area for list -->
     <sl-drawer ref="drawer" label="Administration">
       <h3>Bearbeite deine Wunschliste</h3>
       <div v-if="list && list.id" class="d-flex-column gap-m mb-m">
@@ -398,9 +399,7 @@ export default {
     },
     closeOtherItems (index) {
       [...this.$refs.wishlist.querySelectorAll('sl-details')].map((item, position) => {
-        if (position != index) {
-          item.open = false
-        }
+        if (position != index) item.hide()
       })
     }
   },
@@ -463,5 +462,14 @@ export default {
     h3
       color: var(--sl-color-gray-400)
       text-decoration: line-through
-      
+.menu
+  height: var(--sl-spacing-xxxx-large)
+  width: var(--sl-spacing-xxxx-large)
+  display: flex
+  justify-content: center;
+  align-items: center
+  cursor: pointer
+  transition: color var(--sl-transition-fast) ease
+  &:hover
+    color: var(--sl-color-primary-500)
 </style>

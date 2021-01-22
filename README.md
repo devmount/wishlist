@@ -33,7 +33,7 @@
       title varchar NOT NULL,
       description text,
       links varchar[] NOT NULL,
-      state state DEFAULT 'open',
+      state state DEFAULT 'open' NOT NULL,
       created TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL,
       modified TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
     );
