@@ -19,11 +19,11 @@
         Füge einen Wunsch hinzu
       </h2>
       <div class="d-flex flex-wrap gap-m mb-m">
-        <sl-input class="grow-1" type="text" :value="input.title" @input="input.title = $event.target.value" placeholder="Titel"></sl-input>
-        <sl-input class="grow-5" type="text" :value="input.description" @input="input.description = $event.target.value" placeholder="Beschreibung"></sl-input>
+        <sl-input class="grow-1" type="text" :value="input.item.data.title" @input="input.item.data.title = $event.target.value" placeholder="Titel"></sl-input>
+        <sl-input class="grow-5" type="text" :value="input.item.data.description" @input="input.item.data.description = $event.target.value" placeholder="Beschreibung"></sl-input>
       </div>
-      <sl-textarea class="grow-1 mb-m" :value="input.links" @input="input.links = $event.target.value" placeholder="Link Adressen zum Artikel (ein Link pro Zeile)" rows="1" resize="auto"></sl-textarea>
-      <sl-button v-if="mode=='UPDATE'" type="primary" size="large" @click="syncItem()">
+      <sl-textarea class="grow-1 mb-m" :value="input.item.data.links" @input="input.item.data.links = $event.target.value" placeholder="Link Adressen zum Artikel (ein Link pro Zeile)" rows="1" resize="auto"></sl-textarea>
+      <sl-button v-if="input.item.mode=='UPDATE'" type="primary" size="large" @click="syncItem()">
           <sl-icon class="font-xl" slot="suffix" name="pencil"></sl-icon>
           Wunsch anpassen
       </sl-button>
@@ -148,14 +148,14 @@
         <sl-input
           ref="input-list-title"
           type="text"
-          :value="inputList.title"
-          @input="inputList.title = $event.target.value"
+          :value="input.list.title"
+          @input="input.list.title = $event.target.value"
           placeholder="Titel der Liste"
           required
         ></sl-input>
         <sl-textarea
-          :value="inputList.description"
-          @input="inputList.description = $event.target.value"
+          :value="input.list.description"
+          @input="input.list.description = $event.target.value"
           placeholder="Beschreibung (optional)"
           rows="3"
           resize="auto"
@@ -236,13 +236,18 @@ export default {
     loading: true,
     list: null,
     items: [],
-    input: {},
-    inputList: {
-      title: '',
-      description: '',
+    // input: {},
+    input: {
+      item: {
+        data: {},
+        mode: 'INSERT',
+        target: null,
+      },
+      list: {
+        title: '',
+        description: '',
+      },
     },
-    mode: 'INSERT',
-    target: null,
     dialog: {
       item: null,
       action: '' // [reserve | purchase]
@@ -255,10 +260,10 @@ export default {
     // initially get all existing items
     await this.getList()
     await this.getItems()
-    // init input
-    this.input = JSON.parse(JSON.stringify(this.initItem))
-    this.inputList.title = this.list.title
-    this.inputList.description = this.list.description
+    // init item and list input
+    this.input.item.data = JSON.parse(JSON.stringify(this.initItem))
+    this.input.list.title = this.list.title
+    this.input.list.description = this.list.description
     // finished loading
     this.loading = false
   },
@@ -279,7 +284,7 @@ export default {
       if (valid) {
         await this.$supabase
           .from('lists')
-          .update({ title: this.inputList.title, description: this.inputList.description })
+          .update({ title: this.input.list.title, description: this.input.list.description })
           .match({ id: this.list.id })
         this.$refs.drawer.hide()
       }
@@ -294,32 +299,32 @@ export default {
     // store new or edit existing item
     async syncItem () {
       // get and preprocess item data
-      let i = JSON.parse(JSON.stringify(this.input))
-      i.links = this.input.links.split('\n').map(l => l.trim())
+      let i = JSON.parse(JSON.stringify(this.input.item.data))
+      i.links = i.links.split('\n').map(l => l.trim())
       // check if new or edited item
-      switch (this.mode) {
+      switch (this.input.item.mode) {
         case 'INSERT':
           const insertResult = await this.$supabase.from('items').insert(i)
           if (insertResult.error) console.log(insertResult.error)
           break
         case 'UPDATE':
-          const updateResult = await this.$supabase.from('items').update(i).match({ id: this.target })
+          const updateResult = await this.$supabase.from('items').update(i).match({ id: this.input.item.target })
           if (updateResult.error) console.log(updateResult.error)
           break
         default: break
       }
       // reset form
-      this.input = JSON.parse(JSON.stringify(this.initItem))
-      this.mode = 'INSERT'
-      this.target = null
+      this.input.item.data = JSON.parse(JSON.stringify(this.initItem))
+      this.input.item.mode = 'INSERT'
+      this.input.item.target = null
     },
     // edit existing item
     editItem (item) {
       let i = JSON.parse(JSON.stringify(item))
       i.links = item.links.join('\n')
-      this.input = i
-      this.mode = 'UPDATE'
-      this.target = i.id
+      this.input.item.data = i
+      this.input.item.mode = 'UPDATE'
+      this.input.item.target = i.id
     },
     // open dialog for reservation confirmation
     confirmReserved (item) {
