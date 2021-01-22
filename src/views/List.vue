@@ -154,7 +154,7 @@
       </sl-button>
       <h3 class="mt-xxl">Spoiler</h3>
       <p>Wenn aktiviert, werden alle Reservierungen und Käufe auch in der Verwaltungsansicht der Wunschliste (geheimer Link) angezeigt.</p>
-      <sl-switch style="--width: 80px; --height: 32px; --thumb-size: 26px;" :value="list.spoiler" @input="list.spoiler = !list.spoiler" :checked="list.spoiler"></sl-switch>
+      <sl-switch :value="list.spoiler" @input="list.spoiler = !list.spoiler" :checked="list.spoiler"></sl-switch>
     </sl-drawer>
     <!-- item state handling dialog -->
     <sl-dialog ref="dialog">
