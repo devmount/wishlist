@@ -9,8 +9,8 @@
       Starte eine neue Liste
     </h2>
     <sl-form class="form-overview">
-      <sl-input class="mb-m" type="text" v-model="input.title" placeholder="Titel"></sl-input>
-      <sl-textarea class="mb-m" v-model="input.description" placeholder="Beschreibung" rows="1" resize="auto"></sl-textarea>
+      <sl-input class="mb-m" type="text" :value="input.title" @input="input.title = $event.target.value" placeholder="Titel"></sl-input>
+      <sl-textarea class="mb-m" :value="input.description" @input="input.description = $event.target.value" placeholder="Beschreibung" rows="1" resize="auto"></sl-textarea>
       <sl-button type="primary" size="large" @click="addList()">
         <sl-icon slot="suffix" name="caret-right-fill"></sl-icon>
         Los geht's

@@ -19,10 +19,10 @@
         Füge einen Wunsch hinzu
       </h2>
       <div class="d-flex flex-wrap gap-m mb-m">
-        <sl-input class="grow-1" type="text" v-model="input.title" placeholder="Titel"></sl-input>
-        <sl-input class="grow-5" type="text" v-model="input.description" placeholder="Beschreibung"></sl-input>
+        <sl-input class="grow-1" type="text" :value="input.title" @input="input.title = $event.target.value" placeholder="Titel"></sl-input>
+        <sl-input class="grow-5" type="text" :value="input.description" @input="input.description = $event.target.value" placeholder="Beschreibung"></sl-input>
       </div>
-      <sl-textarea class="grow-1 mb-m" v-model="input.links" placeholder="Link Adressen zum Artikel (ein Link pro Zeile)" rows="1" resize="auto"></sl-textarea>
+      <sl-textarea class="grow-1 mb-m" :value="input.links" @input="input.links = $event.target.value" placeholder="Link Adressen zum Artikel (ein Link pro Zeile)" rows="1" resize="auto"></sl-textarea>
       <sl-button v-if="mode=='UPDATE'" type="primary" size="large" @click="syncItem()">
           <sl-icon class="font-xl" slot="suffix" name="pencil"></sl-icon>
           Wunsch anpassen
@@ -277,11 +277,12 @@ export default {
       // check if new or edited item
       switch (this.mode) {
         case 'INSERT':
-          const result = await this.$supabase.from('items').insert(i)
-          if (result.error) console.log(error)
+          const insertResult = await this.$supabase.from('items').insert(i)
+          if (insertResult.error) console.log(insertResult.error)
           break
         case 'UPDATE':
-          await this.$supabase.from('items').update(i).match({ id: this.target })
+          const updateResult = await this.$supabase.from('items').update(i).match({ id: this.target })
+          if (updateResult.error) console.log(updateResult.error)
           break
         default: break
       }
