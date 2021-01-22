@@ -132,9 +132,11 @@
       <div class="d-flex align-items-center">
         <pre class="grow-1">{{ publicLink }}</pre>
         <sl-button-group>
-          <sl-button class="font-xl" size="medium" @click="copyToClipboard(publicLink)">
-            <sl-icon name="clipboard-plus"></sl-icon>
-          </sl-button>
+          <sl-tooltip content="Kopiert!" trigger="click" ref="public-copied">
+            <sl-button class="font-xl" size="medium" @click="copyToClipboard(publicLink, $refs['public-copied'])">
+              <sl-icon name="clipboard-plus"></sl-icon>
+            </sl-button>
+          </sl-tooltip>
           <sl-button class="font-xl" size="medium" @click="sendEmail(publicLink)">
             <sl-icon name="envelope"></sl-icon>
           </sl-button>
@@ -150,9 +152,11 @@
       Dieser Link sollte nicht geteilt werden!
       <div class="d-flex align-items-center">
         <pre class="grow-1">{{ privateLink }}</pre>
-        <sl-button class="font-xl" size="medium" @click="copyToClipboard(privateLink)">
-          <sl-icon name="clipboard-plus"></sl-icon>
-        </sl-button>
+        <sl-tooltip content="Kopiert!" trigger="click" ref="private-copied">
+          <sl-button class="font-xl" size="medium" @click="copyToClipboard(privateLink, $refs['private-copied'])">
+            <sl-icon name="clipboard-plus"></sl-icon>
+          </sl-button>
+        </sl-tooltip>
       </div>
     </section>
     <section class="content-center font-xs text-gray">
@@ -382,9 +386,11 @@ export default {
     async deleteItem (id) {
       await this.$supabase.from('items').delete().match({ id: id })
     },
-    // copy given text to system clipboard
-    copyToClipboard (text) {
+    // copy given <text> to system clipboard
+    copyToClipboard (text, message) {
       navigator.clipboard.writeText(text)
+      let self = this
+      setTimeout(() => message.hide(), 3000)
     },
     // send given text as body content in new email
     sendEmail (text) {
