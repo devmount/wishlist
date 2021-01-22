@@ -137,7 +137,7 @@
       am <sl-format-date :date="list.created" month="long" day="numeric" year="numeric" locale="de"></sl-format-date> erstellt
     </section>
     <div class="admin p-fixed-top-right">
-      <sl-button v-if="admin" type="text" @click="this.$refs.drawer.show()">
+      <sl-button v-if="admin" type="text" @click="$refs.drawer.show()">
         <sl-icon class="font-xxl" name="list"></sl-icon>
       </sl-button>
     </div>
@@ -145,8 +145,21 @@
     <sl-drawer ref="drawer" label="Administration">
       <h3>Bearbeite deine Wunschliste</h3>
       <div v-if="list && list.id" class="d-flex-column gap-m mb-m">
-        <sl-input type="text" :value="list.title" @input="list.title = $event.target.value" placeholder="Titel"></sl-input>
-        <sl-textarea :value="list.description" @input="list.description = $event.target.value" placeholder="Beschreibung" rows="3" resize="auto"></sl-textarea>
+        <sl-input
+          ref="input-list-title"
+          type="text"
+          :value="inputList.title"
+          @input="inputList.title = $event.target.value"
+          placeholder="Titel der Liste"
+          required
+        ></sl-input>
+        <sl-textarea
+          :value="inputList.description"
+          @input="inputList.description = $event.target.value"
+          placeholder="Beschreibung (optional)"
+          rows="3"
+          resize="auto"
+        ></sl-textarea>
       </div>
       <sl-button type="primary" size="large" @click="syncList()">
           <sl-icon class="font-xl" slot="suffix" name="pencil"></sl-icon>
@@ -191,7 +204,7 @@
         und er wird für jeden wieder als verfügbar angezeigt.
       </div>
       <div slot="footer">
-        <sl-button type="default" @click="$refs.dialog.hide()" class="mr-s" size="large">Lieber nicht</sl-button>
+        <sl-button type="default" @click="$refs['dialog-purchase'].hide()" class="mr-s" size="large">Lieber nicht</sl-button>
         <sl-button type="primary" size="large" @click="togglePurchased(dialog.item)">
           <span v-if="dialog.item && dialog.item.state != 'purchased'">Ja, hab ich gekauft</span>
           <span v-if="dialog.item && dialog.item.state == 'purchased'">Ja, der Kauf hat nicht geklappt</span>
@@ -206,7 +219,7 @@
       <p>
         Diese Liste existiert nicht mehr oder der Link ist ungültig.
         Bitte prüfe den Link oder frage bei der Person nach, die ihn dir geschickt hat.
-        Wenn alles nichts hilft, <router-link to="/">starte von vorn</router-link>.
+        Wenn alles nichts hilft, <router-link :to="{ name: 'start' }">starte von vorn</router-link>.
       </p>
     </header>
   </div>
@@ -224,6 +237,10 @@ export default {
     list: null,
     items: [],
     input: {},
+    inputList: {
+      title: '',
+      description: '',
+    },
     mode: 'INSERT',
     target: null,
     dialog: {
@@ -240,6 +257,8 @@ export default {
     await this.getItems()
     // init input
     this.input = JSON.parse(JSON.stringify(this.initItem))
+    this.inputList.title = this.list.title
+    this.inputList.description = this.list.description
     // finished loading
     this.loading = false
   },
@@ -256,11 +275,14 @@ export default {
     },
     // edit list
     async syncList () {
-      await this.$supabase
-        .from('lists')
-        .update({ title: this.list.title, description: this.list.description })
-        .match({ id: this.list.id })
-      this.$refs.drawer.hide()
+      let valid = await this.$refs['input-list-title'].reportValidity()
+      if (valid) {
+        await this.$supabase
+          .from('lists')
+          .update({ title: this.inputList.title, description: this.inputList.description })
+          .match({ id: this.list.id })
+        this.$refs.drawer.hide()
+      }
     },
     // retrieve list of item objects
     async getItems () {
@@ -383,7 +405,7 @@ export default {
       await this.getList()
       await this.getItems()
     },
-    'list.spoiler': async function (newVal, oldVal) {
+    'list.spoiler': async function (newVal) {
       await this.$supabase.from('lists').update({ spoiler: newVal }).match({ id: this.list.id })
     }
   }

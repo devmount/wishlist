@@ -115,7 +115,7 @@ export default {
         if (!error) {
           this.storeLocalListEntry(data[0])
           let self = this
-          // workaround for race condition but in vue router
+          // workaround for race condition in vue router
           setTimeout(function() {
             self.$router.push({ name: 'private', params: { public: slugPublic, private: slugPrivate }})
           }, 100);
