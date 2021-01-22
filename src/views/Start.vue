@@ -13,16 +13,24 @@
       Optional kannst du den Beschreibungstext nutzen, um die Besucher deiner Wunschliste zu informieren,
       was dir beim Schenken wichtig ist.
     </p>
-    <sl-form>
-      <sl-input
-        ref="input-title"
-        class="check-input mb-m"
-        type="text"
-        :value="input.title"
-        @input="input.title = $event.target.value"
-        placeholder="Titel der Liste"
-        required
-      ></sl-input>
+    <div>
+      <div class="d-flex gap-m mb-m">
+        <sl-input
+          ref="input-title"
+          class="check-input grow-1"
+          type="text"
+          :value="input.title"
+          @input="input.title = $event.target.value"
+          placeholder="Titel der Liste"
+          required
+        ></sl-input>
+        <sl-color-picker
+          format="hex"
+          :value="input.color"
+          @mouseup="input.color = $event.target.value"
+          @mouseleave="input.color = $event.target.value"
+        ></sl-color-picker>
+      </div>
       <sl-textarea
         class="mb-m"
         :value="input.description"
@@ -35,7 +43,7 @@
         <sl-icon slot="suffix" name="caret-right-fill"></sl-icon>
         Los geht's
       </sl-button>
-    </sl-form>
+    </div>
   </section>
   <section>
     <h2>
@@ -88,6 +96,7 @@ export default {
   data: () => ({
     input: {
       title: '',
+      color: '#0ea5e9',
       description: '',
     },
     localLists: []
@@ -108,6 +117,7 @@ export default {
         const slugPrivate = this.generateSlug(16)
         const { data, error } = await this.$supabase.from('lists').insert({
           'title': this.input.title,
+          'color': this.input.color,
           'description': this.input.description,
           'slug_public': slugPublic,
           'slug_private': slugPrivate,

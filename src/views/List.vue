@@ -9,8 +9,9 @@
   </div>
   <div v-else-if="list && list.id">
     <header class="content-center mb-xxxl">
-      <Logo />
+      <Logo :style="{ color: accent }" />
       <h1>{{ list.title }}</h1>
+      <hr :style="{ background: accent }" /> 
       <p>{{ list.description }}</p>
     </header>
     <section v-if="admin" class="mb-xxxl">
@@ -173,15 +174,23 @@
     <sl-drawer ref="drawer" label="Administration">
       <h3>Bearbeite deine Wunschliste</h3>
       <div v-if="list && list.id" class="d-flex-column gap-m mb-m">
-        <sl-input
-          class="check-input"
-          ref="input-list-title"
-          type="text"
-          :value="input.list.title"
-          @input="input.list.title = $event.target.value"
-          placeholder="Titel der Liste"
-          required
-        ></sl-input>
+        <div class="d-flex gap-m">
+          <sl-input
+            class="check-input grow-1"
+            ref="input-list-title"
+            type="text"
+            :value="input.list.title"
+            @input="input.list.title = $event.target.value"
+            placeholder="Titel der Liste"
+            required
+          ></sl-input>
+          <sl-color-picker
+            format="hex"
+            :value="input.list.color"
+            @mouseup="input.list.color = $event.target.value"
+            @mouseleave="input.list.color = $event.target.value"
+          ></sl-color-picker>
+        </div>
         <sl-textarea
           :value="input.list.description"
           @input="input.list.description = $event.target.value"
@@ -274,6 +283,7 @@ export default {
       },
       list: {
         title: '',
+        color: '#0ea5e9',
         description: '',
       },
     },
@@ -292,6 +302,7 @@ export default {
     // init item and list input
     this.input.item.data = JSON.parse(JSON.stringify(this.initItem))
     this.input.list.title = this.list.title
+    this.input.list.color = this.list.color
     this.input.list.description = this.list.description
     // finished loading
     this.loading = false
@@ -311,10 +322,15 @@ export default {
     async syncList () {
       let valid = await this.$refs['input-list-title'].reportValidity()
       if (valid) {
-        await this.$supabase
+        const syncListResult = await this.$supabase
           .from('lists')
-          .update({ title: this.input.list.title, description: this.input.list.description })
+          .update({
+            title: this.input.list.title,
+            color: this.input.list.color,
+            description: this.input.list.description
+          })
           .match({ id: this.list.id })
+        if (syncListResult.error) console.log(syncListResult.error)
         this.$refs.drawer.hide()
       }
     },
@@ -390,7 +406,6 @@ export default {
     // copy given <text> to system clipboard
     copyToClipboard (text, message) {
       navigator.clipboard.writeText(text)
-      let self = this
       setTimeout(() => message.hide(), 3000)
     },
     // send given text as body content in new email
@@ -401,7 +416,7 @@ export default {
       [...this.$refs.wishlist.querySelectorAll('sl-details')].map((item, position) => {
         if (position != index) item.hide()
       })
-    }
+    },
   },
   computed: {
     // initial item object
@@ -436,6 +451,10 @@ export default {
     // approve if something is allowed to be shown
     allowed () {
       return this.visitor || this.list.spoiler
+    },
+    // prived accent color once list color is loaded
+    accent () {
+      return this.list && this.list.color ? this.list.color : '#000000'
     }
   },
   watch: {

@@ -1,12 +1,5 @@
 <template>
-	<svg
-		xmlns="http://www.w3.org/2000/svg"
-		class="logo"
-		viewBox="0 0 24 24"
-		fill="none"
-		stroke-linecap="round"
-		stroke-linejoin="round"
-	>
+	<svg xmlns="http://www.w3.org/2000/svg" class="logo" viewBox="0 0 24 24">
 		<path stroke="none" d="M0 0h24v24H0z" fill="none"/>
 		<rect x="3" y="8" width="18" height="4" rx="1" />
 		<line x1="12" y1="8" x2="12" y2="21" />
@@ -20,5 +13,8 @@
 	width: 8rem
 	height: 8rem
 	stroke-width: .625
+	fill: none
+	stroke-linecap: round
+	stroke-linejoin: round
 	stroke: currentColor
 </style>
