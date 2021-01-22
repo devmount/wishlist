@@ -267,15 +267,21 @@ export default {
     },
     // store new or edit existing item
     async syncItem () {
+      // get and preprocess item data
+      let i = JSON.parse(JSON.stringify(this.input))
+      i.links = this.input.links.split('\n').map(l => l.trim())
+      // check if new or edited item
       switch (this.mode) {
         case 'INSERT':
-          await this.$supabase.from('items').insert([ this.processedInput ])
+          const result = await this.$supabase.from('items').insert(i)
+          if (result.error) console.log(error)
           break
         case 'UPDATE':
-          await this.$supabase.from('items').update([ this.processedInput ]).match({ id: this.target })
+          await this.$supabase.from('items').update(i).match({ id: this.target })
           break
         default: break
       }
+      // reset form
       this.input = JSON.parse(JSON.stringify(this.initItem))
       this.mode = 'INSERT'
       this.target = null
@@ -339,15 +345,6 @@ export default {
         title: '',
         description: '',
         links: '',
-        list: null
-      }
-    },
-    // processed input object
-    processedInput () {
-      return {
-        title: this.input.title,
-        description: this.input.description,
-        links: this.input.links.split('\n').map(l => l.trim()),
         list: this.list.id
       }
     },
