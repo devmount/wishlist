@@ -353,7 +353,7 @@ export default {
     },
     // return base url
     baseUrl () {
-      return document.baseURI.substring(0, document.baseURI.indexOf('/', 7))
+      return window.location.origin
     },
     // return complete public link for sharing
     publicLink () {
