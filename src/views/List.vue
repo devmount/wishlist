@@ -256,6 +256,7 @@ export default {
         .from('lists')
         .update({ title: this.list.title, description: this.list.description })
         .match({ id: this.list.id })
+      this.$refs.drawer.hide()
     },
     // retrieve list of item objects
     async getItems () {
