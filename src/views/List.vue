@@ -1,7 +1,7 @@
 <template>
   <div v-if="loading">
     <header class="content-center mb-xxxl">
-      <Logo />
+      <Logo @click="$router.push({ name: 'start' })" class="c-pointer" />
       <div class="mt-xxl">
         <sl-spinner class="font-xxxl"></sl-spinner>
       </div>
@@ -9,7 +9,7 @@
   </div>
   <div v-else-if="list && list.id">
     <header class="content-center mb-xxxl">
-      <Logo :style="{ color: accent }" />
+      <Logo @click="$router.push({ name: 'start' })" :style="{ color: accent }" class="c-pointer" />
       <h1>{{ list.title }}</h1>
       <hr :style="{ background: accent }" /> 
       <p>{{ list.description }}</p>

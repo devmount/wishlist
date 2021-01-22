@@ -9,7 +9,7 @@
       Starte eine neue Liste
     </h2>
     <p>
-      Gib einen kurzen Titel für deine Wunschliste an.
+      Gib einen kurzen Titel für deine Wunschliste an und wähle einen Farbakzent, an dem man deine Liste erkennt.
       Optional kannst du den Beschreibungstext nutzen, um die Besucher deiner Wunschliste zu informieren,
       was dir beim Schenken wichtig ist.
     </p>
