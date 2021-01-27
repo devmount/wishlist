@@ -27,8 +27,7 @@
         <sl-color-picker
           format="hex"
           :value="input.color"
-          @mouseup="input.color = $event.target.value"
-          @mouseleave="input.color = $event.target.value"
+          @sl-change="input.color = $event.target.value"
         ></sl-color-picker>
       </div>
       <sl-textarea
