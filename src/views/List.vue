@@ -63,7 +63,7 @@
         :key="i.id"
         :reserved="i.state == 'reserved' && allowed"
         :purchased="i.state == 'purchased' && allowed"
-        @click="closeOtherItems(n)"
+        @sl-show="closeOtherItems(n)"
       >
         <!-- item title and flag -->
         <header slot="summary" class="d-flex align-items-center gap-m">
@@ -412,10 +412,9 @@ export default {
     sendEmail (text) {
       window.location = "mailto:?subject=Meine Wunschliste: " + this.list.title + "&body=" + text
     },
+    // close all other list items if one is shown
     closeOtherItems (index) {
-      [...this.$refs.wishlist.querySelectorAll('sl-details')].map((item, position) => {
-        if (position != index) item.hide()
-      })
+      [...this.$refs.wishlist.querySelectorAll('sl-details')].map((item, position) => (item.open = position == index))
     },
   },
   computed: {
