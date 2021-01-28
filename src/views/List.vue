@@ -175,7 +175,7 @@
       </div>
     </div>
     <!-- admin area for list -->
-    <sl-drawer ref="drawer" label="Administration" @sl-after-hide="resetListInput()">
+    <sl-drawer ref="drawer" label="Administration">
       <h3>Bearbeite deine Wunschliste</h3>
       <sl-form @sl-submit="syncList()">
         <div v-if="list && list.id" class="d-flex-column gap-m mb-m">
