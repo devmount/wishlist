@@ -177,7 +177,7 @@
       </div>
     </div>
     <!-- admin area for list -->
-    <sl-drawer ref="drawer" label="Administration">
+    <sl-drawer ref="drawer" label="Administration" @sl-after-hide="resetListInput()">
       <h3>Bearbeite deine Wunschliste</h3>
       <div v-if="list && list.id" class="d-flex-column gap-m mb-m">
         <div class="d-flex gap-m">
@@ -306,9 +306,7 @@ export default {
     await this.getItems()
     // init item and list input
     this.resetItemInput()
-    this.input.list.title = this.list.title
-    this.input.list.color = this.list.color
-    this.input.list.description = this.list.description
+    this.resetListInput()
     // finished loading
     this.loading = false
   },
@@ -329,16 +327,18 @@ export default {
       if (valid) {
         const { data, error} = await this.$supabase
           .from('lists')
-          .update({
-            title: this.input.list.title,
-            color: this.input.list.color,
-            description: this.input.list.description
-          })
+          .update(this.input.list)
           .match({ id: this.list.id })
         if (!error) this.list = data[0]
         else console.log(error)
         this.$refs.drawer.hide()
       }
+    },
+    // reset list form
+    resetListInput () {
+      this.input.list.title = this.list.title
+      this.input.list.color = this.list.color
+      this.input.list.description = this.list.description
     },
     // retrieve list of item objects
     async getItems () {
