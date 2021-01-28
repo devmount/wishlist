@@ -309,19 +309,19 @@ export default {
   methods: {
     // retrieve list object
     async getList () {
-      let { data: lists, error } = await this.$supabase.from('lists').select('*')
-      let requestedList = lists.find(l => l.slug_public == this.$route.params.public)
-      if (requestedList) {
-        this.list = requestedList
+      const { data: lists, error } = await this.$supabase.from('lists').select('*')
+      if (!error) {
+        const requestedList = lists.find(l => l.slug_public == this.$route.params.public)
+        this.list = requestedList ? requestedList : null
       } else {
-        this.list = null
+        console.log(error)
       }
     },
     // edit list
     async syncList () {
       let valid = await this.$refs['input-list-title'].reportValidity()
       if (valid) {
-        const syncListResult = await this.$supabase
+        const { data, error} = await this.$supabase
           .from('lists')
           .update({
             title: this.input.list.title,
@@ -329,15 +329,17 @@ export default {
             description: this.input.list.description
           })
           .match({ id: this.list.id })
-        if (syncListResult.error) console.log(syncListResult.error)
+        if (!error) this.list = data[0]
+        else console.log(error)
         this.$refs.drawer.hide()
       }
     },
     // retrieve list of item objects
     async getItems () {
       if (this.list && this.list.id) {
-        let { data: items, error } = await this.$supabase.from('items').select('*').filter('list', 'eq', this.list.id)
-        this.items = items.sort((a,b) => a.created < b.created)
+        const { data: items, error } = await this.$supabase.from('items').select('*').filter('list', 'eq', this.list.id)
+        if (!error) this.items = items.sort((a,b) => a.created < b.created)
+        else console.log(error)
       }
     },
     // store new or edit existing item
@@ -352,11 +354,13 @@ export default {
         switch (this.input.item.mode) {
           case 'INSERT':
             const insertResult = await this.$supabase.from('items').insert(i)
-            if (insertResult.error) console.log(insertResult.error)
+            if (!insertResult.error) this.items.unshift(i)
+            else console.log(insertResult.error)
             break
           case 'UPDATE':
             const updateResult = await this.$supabase.from('items').update(i).match({ id: this.input.item.target })
-            if (updateResult.error) console.log(updateResult.error)
+            if (!updateResult.error) this.items[this.getItemPosition(i.id)] = i
+            else console.log(updateResult.error)
             break
           default: break
         }
@@ -382,8 +386,10 @@ export default {
     },
     // set item state to reserved or open and close dialog
     async toggleReserved (item) {
-      let state = item.state == 'reserved' ? 'open' : 'reserved'
-      await this.$supabase.from('items').update({ state: state }).match({ id: item.id })
+      const state = item.state == 'reserved' ? 'open' : 'reserved'
+      const { data, error } = await this.$supabase.from('items').update({ state: state }).match({ id: item.id })
+      if (!error) this.items[this.getItemPosition(data[0].id)].state = state
+      else console.log(error)
       this.$refs['dialog-reserve'].hide()
     },
     // open dialog for purchase confirmation
@@ -394,13 +400,21 @@ export default {
     },
     // set item state to purchased or open
     async togglePurchased (item) {
-      let state = item.state == 'purchased' ? 'open' : 'purchased'
-      await this.$supabase.from('items').update({ state: state }).match({ id: item.id })
+      const state = item.state == 'purchased' ? 'open' : 'purchased'
+      const { data, error } = await this.$supabase.from('items').update({ state: state }).match({ id: item.id })
+      if (!error) this.items[this.getItemPosition(data[0].id)].state = state
+      else console.log(error)
       this.$refs['dialog-purchase'].hide()
     },
     // delete existing item
     async deleteItem (id) {
-      await this.$supabase.from('items').delete().match({ id: id })
+      const deleteResult = await this.$supabase.from('items').delete().match({ id: id })
+      if (!deleteResult.error) this.items.slice(this.getItemPosition(id), 1)
+      else console.log(error)
+    },
+    // find current position of list item with given <id>
+    getItemPosition (id) {
+      return this.items.findIndex(i => i.id === id)
     },
     // copy given <text> to system clipboard
     copyToClipboard (text, message) {
