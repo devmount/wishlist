@@ -53,22 +53,28 @@
       FOR EACH ROW EXECUTE PROCEDURE moddatetime (modified);
     ```
 
-## Development
+3. Clone this project and enter its root directory
 
-Install dependencies:
+    ```bash
+    git clone https://github.com/devmount/wishlist.git
+    cd wishlist
+    ```
 
-```bash
-yarn install
-```
+4. Edit the `.env.example` file with your Supabase credentials and rename it to `.env`
+5. Install dependencies with [Yarn](https://yarnpkg.com/getting-started)
 
-Compiles and hot-reloads for development:
+    ```bash
+    yarn
+    ```
 
-```bash
-yarn serve
-```
+6. Compile and hot-reload for development ...
 
-Compiles and minifies for production:
+    ```bash
+    yarn serve
+    ```
 
-```bash
-yarn build
-```
+7. ... or compile and minify for production:
+
+    ```bash
+    yarn build
+    ```
