@@ -8,7 +8,7 @@
       <sl-icon slot="suffix" size="large" name="house-door"></sl-icon>
     </sl-button>
     <div class="mb-m">
-      Entwickelt von Andreas Müller
+      Wishlist {{ $version }} von Andreas Müller
     </div>
     <div>
       &copy; 2021 <a href="https://devmount.de" target="_blank">devmount</a>
