@@ -101,7 +101,7 @@
         </main>
         <!-- flag and manage item -->
         <footer class="d-flex justify-end flex-wrap gap-m">
-          <sl-button v-if="admin" type="danger" size="large" @click="deleteItem(i.id)">
+          <sl-button v-if="admin" type="danger" size="large" @click="confirmRemoval(i)">
             <sl-icon name="trash"></sl-icon>
           </sl-button>
           <sl-button v-if="admin" class="mr-auto" type="primary" size="large" @click="editItem(i)">
@@ -258,6 +258,21 @@
         </sl-button>
       </div>
     </sl-dialog>
+    <!-- dialog: item removal -->
+    <sl-dialog ref="dialog-delete">
+      <div slot="label">
+        Diesen Wunsch löschen?
+      </div>
+      <div v-if="dialog.item">
+        Damit entfernst den Wunsch «{{ dialog.item.title }}». Dieses Aktion kann nicht rückgängig gemacht werden.
+      </div>
+      <div slot="footer">
+        <sl-button type="default" @click="$refs['dialog-delete'].hide()" class="mr-s" size="large">Lieber nicht</sl-button>
+        <sl-button type="danger" size="large" @click="deleteItem(dialog.item)">
+          Ja, kann weg
+        </sl-button>
+      </div>
+    </sl-dialog>
   </div>
   <div v-else>
     <header class="content-center mb-xxxl">
@@ -298,7 +313,7 @@ export default {
     },
     dialog: {
       item: null,
-      action: '' // 'reserve' | 'purchase'
+      action: '' // 'reserve' | 'purchase' | 'delete
     }
   }),
   async created () {
@@ -417,11 +432,18 @@ export default {
       else console.log(error)
       this.$refs['dialog-purchase'].hide()
     },
+    // open dialog for item removal confirmation
+    confirmRemoval (item) {
+      this.dialog.item = item
+      this.dialog.action = 'delete'
+      this.$refs['dialog-delete'].show()
+    },
     // delete existing item
-    async deleteItem (id) {
-      const deleteResult = await this.$supabase.from('items').delete().match({ id: id })
-      if (!deleteResult.error) this.items.slice(this.getItemPosition(id), 1)
+    async deleteItem (item) {
+      const deleteResult = await this.$supabase.from('items').delete().match({ id: item.id })
+      if (!deleteResult.error) this.items.slice(this.getItemPosition(item.id), 1)
       else console.log(error)
+      this.$refs['dialog-delete'].hide()
     },
     // find current position of list item with given <id>
     getItemPosition (id) {
