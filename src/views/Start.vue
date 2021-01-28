@@ -13,7 +13,7 @@
       Optional kannst du den Beschreibungstext nutzen, um die Besucher deiner Wunschliste zu informieren,
       was dir beim Schenken wichtig ist.
     </p>
-    <sl-form @sl-submit="addList()">
+    <sl-form @sl-submit="addList()" class="content-center">
       <div class="d-flex gap-m mb-m">
         <sl-input
           ref="input-title"
@@ -39,7 +39,7 @@
         resize="auto"
       ></sl-textarea>
       <sl-button type="primary" size="large" submit>
-        <sl-icon slot="suffix" name="caret-right-fill"></sl-icon>
+        <sl-icon class="font-xl" slot="suffix" name="arrow-right"></sl-icon>
         Los geht's
       </sl-button>
     </sl-form>
