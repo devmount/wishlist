@@ -50,7 +50,7 @@
         ></sl-textarea>
         <div class="d-flex justify-end gap-m">
           <sl-button v-if="input.item.mode=='UPDATE'" type="default" size="large" @click="resetItemInput()">
-            <sl-icon class="font-xl" slot="suffix" name="x"></sl-icon>
+            <sl-icon class="font-xl" slot="suffix" name="arrow-return-left"></sl-icon>
             Lieber nicht ändern
           </sl-button>
           <sl-button v-if="input.item.mode=='UPDATE'" type="primary" size="large" submit>
@@ -108,25 +108,21 @@
             <sl-icon name="pencil"></sl-icon>
           </sl-button>
           <sl-button-group>
-            <sl-button type="info" size="large" @click="confirmReserved(i)">
-              <template v-if="i.state != 'reserved'">
-                <sl-icon class="font-xl" slot="suffix" name="patch-exclamation"></sl-icon>
-                Reserviere ich
-              </template>
-              <template v-else>
-                <sl-icon class="font-xl" slot="suffix" name="patch-minus"></sl-icon>
-                Doch nicht reserviert
-              </template>
+            <sl-button v-if="i.state != 'reserved'" type="info" size="large" @click="confirmReserved(i)">
+              <sl-icon class="font-xl" slot="suffix" name="patch-exclamation"></sl-icon>
+              Reserviere ich
             </sl-button>
-            <sl-button type="primary" size="large" @click="confirmPurchased(i)">
-              <template v-if="i.state != 'purchased'">
+            <sl-button v-else type="info" size="large" @click="confirmReserved(i)">
+              <sl-icon class="font-xl" slot="suffix" name="patch-minus"></sl-icon>
+              Doch nicht reserviert
+            </sl-button>
+            <sl-button v-if="i.state != 'purchased'" type="primary" size="large" @click="confirmPurchased(i)">
                 <sl-icon class="font-xl" slot="suffix" name="cart-check"></sl-icon>
                 Habe ich gekauft
-              </template>
-              <template v-else>
-                <sl-icon class="font-xl" slot="suffix" name="cart-dash"></sl-icon>
-                Doch nicht gekauft
-              </template>
+            </sl-button>
+            <sl-button v-else type="primary" size="large" @click="confirmPurchased(i)">
+              <sl-icon class="font-xl" slot="suffix" name="cart-dash"></sl-icon>
+              Doch nicht gekauft
             </sl-button>
           </sl-button-group>
         </footer>
@@ -230,10 +226,17 @@
         und er wird für jeden wieder als verfügbar angezeigt.
       </div>
       <div slot="footer">
-        <sl-button type="default" @click="$refs['dialog-reserve'].hide()" class="mr-s" size="large">Lieber nicht</sl-button>
-        <sl-button type="info" size="large" @click="toggleReserved(dialog.item)">
-          <span v-if="dialog.item && dialog.item.state != 'reserved'">Ja, bitte reservieren</span>
-          <span v-if="dialog.item && dialog.item.state == 'reserved'">Ja, Reservierung aufheben</span>
+        <sl-button type="default" @click="$refs['dialog-reserve'].hide()" class="mr-s" size="large">
+          <sl-icon class="font-xl" slot="suffix" name="arrow-return-left"></sl-icon>
+          Lieber nicht
+        </sl-button>
+        <sl-button v-if="dialog.item && dialog.item.state != 'reserved'" type="info" size="large" @click="toggleReserved(dialog.item)">
+          <sl-icon class="font-xl" slot="suffix" name="patch-exclamation"></sl-icon>
+          Ja, bitte reservieren
+        </sl-button>
+        <sl-button v-if="dialog.item && dialog.item.state == 'reserved'" type="info" size="large" @click="toggleReserved(dialog.item)">
+          <sl-icon class="font-xl" slot="suffix" name="patch-minus"></sl-icon>
+          Ja, Reservierung aufheben
         </sl-button>
       </div>
     </sl-dialog>
@@ -251,10 +254,17 @@
         und er wird für jeden wieder als verfügbar angezeigt.
       </div>
       <div slot="footer">
-        <sl-button type="default" @click="$refs['dialog-purchase'].hide()" class="mr-s" size="large">Lieber nicht</sl-button>
-        <sl-button type="primary" size="large" @click="togglePurchased(dialog.item)">
-          <span v-if="dialog.item && dialog.item.state != 'purchased'">Ja, hab ich gekauft</span>
-          <span v-if="dialog.item && dialog.item.state == 'purchased'">Ja, der Kauf hat nicht geklappt</span>
+        <sl-button type="default" @click="$refs['dialog-purchase'].hide()" class="mr-s" size="large">
+          <sl-icon class="font-xl" slot="suffix" name="arrow-return-left"></sl-icon>
+          Lieber nicht
+        </sl-button>
+        <sl-button v-if="dialog.item && dialog.item.state != 'purchased'" type="primary" size="large" @click="togglePurchased(dialog.item)">
+          <sl-icon class="font-xl" slot="suffix" name="cart-check"></sl-icon>
+          Ja, hab ich gekauft
+        </sl-button>
+        <sl-button v-if="dialog.item && dialog.item.state == 'purchased'" type="primary" size="large" @click="togglePurchased(dialog.item)">
+          <sl-icon class="font-xl" slot="suffix" name="cart-dash"></sl-icon>
+          Ja, der Kauf hat nicht geklappt
         </sl-button>
       </div>
     </sl-dialog>
@@ -267,8 +277,12 @@
         Damit entfernst den Wunsch «{{ dialog.item.title }}». Dieses Aktion kann nicht rückgängig gemacht werden.
       </div>
       <div slot="footer">
-        <sl-button type="default" @click="$refs['dialog-delete'].hide()" class="mr-s" size="large">Lieber nicht</sl-button>
+        <sl-button type="default" @click="$refs['dialog-delete'].hide()" class="mr-s" size="large">
+          <sl-icon class="font-xl" slot="suffix" name="arrow-return-left"></sl-icon>
+          Lieber nicht
+        </sl-button>
         <sl-button type="danger" size="large" @click="deleteItem(dialog.item)">
+          <sl-icon class="font-xl" slot="suffix" name="trash"></sl-icon>
           Ja, kann weg
         </sl-button>
       </div>
