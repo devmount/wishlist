@@ -181,35 +181,37 @@
     <!-- admin area for list -->
     <sl-drawer ref="drawer" label="Administration" @sl-after-hide="resetListInput()">
       <h3>Bearbeite deine Wunschliste</h3>
-      <div v-if="list && list.id" class="d-flex-column gap-m mb-m">
-        <div class="d-flex gap-m">
-          <sl-input
-            class="check-input grow-1"
-            ref="input-list-title"
-            type="text"
-            :value="input.list.title"
-            @input="input.list.title = $event.target.value"
-            placeholder="Titel der Liste"
-            required
-          ></sl-input>
-          <sl-color-picker
-            format="hex"
-            :value="input.list.color"
-            @sl-change="input.list.color = $event.target.value"
-          ></sl-color-picker>
+      <sl-form @sl-submit="syncList()">
+        <div v-if="list && list.id" class="d-flex-column gap-m mb-m">
+          <div class="d-flex gap-m">
+            <sl-input
+              class="check-input grow-1"
+              ref="input-list-title"
+              type="text"
+              :value="input.list.title"
+              @input="input.list.title = $event.target.value"
+              placeholder="Titel der Liste"
+              required
+            ></sl-input>
+            <sl-color-picker
+              format="hex"
+              :value="input.list.color"
+              @sl-change="input.list.color = $event.target.value"
+            ></sl-color-picker>
+          </div>
+          <sl-textarea
+            :value="input.list.description"
+            @input="input.list.description = $event.target.value"
+            placeholder="Beschreibung (optional)"
+            rows="3"
+            resize="auto"
+          ></sl-textarea>
         </div>
-        <sl-textarea
-          :value="input.list.description"
-          @input="input.list.description = $event.target.value"
-          placeholder="Beschreibung (optional)"
-          rows="3"
-          resize="auto"
-        ></sl-textarea>
-      </div>
-      <sl-button type="primary" size="large" @click="syncList()">
-          <sl-icon class="font-xl" slot="suffix" name="pencil"></sl-icon>
-          Wunschliste anpassen
-      </sl-button>
+        <sl-button type="primary" size="large" submit>
+            <sl-icon class="font-xl" slot="suffix" name="pencil"></sl-icon>
+            Wunschliste anpassen
+        </sl-button>
+      </sl-form>
       <h3 class="mt-xxl">Spoiler</h3>
       <p>Wenn aktiviert, werden alle Reservierungen und Käufe auch in der Verwaltungsansicht der Wunschliste (geheimer Link) angezeigt.</p>
       <sl-switch :value="list.spoiler" @input="list.spoiler = !list.spoiler" :checked="list.spoiler"></sl-switch>
@@ -325,8 +327,7 @@ export default {
     },
     // edit list
     async syncList () {
-      let valid = await this.$refs['input-list-title'].reportValidity()
-      if (valid) {
+      if (this.input.list.title) {
         const { data, error} = await this.$supabase
           .from('lists')
           .update(this.input.list)

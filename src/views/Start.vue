@@ -13,7 +13,7 @@
       Optional kannst du den Beschreibungstext nutzen, um die Besucher deiner Wunschliste zu informieren,
       was dir beim Schenken wichtig ist.
     </p>
-    <div>
+    <sl-form @sl-submit="addList()">
       <div class="d-flex gap-m mb-m">
         <sl-input
           ref="input-title"
@@ -38,11 +38,11 @@
         rows="1"
         resize="auto"
       ></sl-textarea>
-      <sl-button type="primary" size="large" @click="addList()">
+      <sl-button type="primary" size="large" submit>
         <sl-icon slot="suffix" name="caret-right-fill"></sl-icon>
         Los geht's
       </sl-button>
-    </div>
+    </sl-form>
   </section>
   <section>
     <h2>
@@ -110,8 +110,7 @@ export default {
     },
     // store new list in database
     async addList () {
-      let valid = await this.$refs['input-title'].reportValidity()
-      if (valid) {
+      if (this.input.title) {
         const slugPublic = this.generateSlug(10)
         const slugPrivate = this.generateSlug(16)
         const { data, error } = await this.$supabase.from('lists').insert({
