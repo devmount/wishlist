@@ -19,48 +19,50 @@
         <sl-icon class="font-xl" name="bag-plus"></sl-icon>
         Füge einen Wunsch hinzu
       </h2>
-      <div class="d-flex flex-wrap gap-m mb-m">
-        <sl-input
-          ref="input-item-title"
-          class="check-input grow-1"
-          type="text"
-          :value="input.item.data.title"
-          @input="input.item.data.title = $event.target.value"
-          placeholder="Titel"
+      <sl-form @sl-submit="syncItem()">
+        <div class="d-flex flex-wrap gap-m mb-m">
+          <sl-input
+            ref="input-item-title"
+            class="check-input grow-1"
+            type="text"
+            :value="input.item.data.title"
+            @sl-change="input.item.data.title = $event.target.value"
+            placeholder="Titel"
+            required
+          ></sl-input>
+          <sl-input
+            class="grow-5"
+            type="text"
+            :value="input.item.data.description"
+            @sl-change="input.item.data.description = $event.target.value"
+            placeholder="Beschreibung (optional)"
+          ></sl-input>
+        </div>
+        <sl-textarea
+          ref="input-item-links"
+          class="check-input grow-1 mb-m"
+          :value="input.item.data.links"
+          @sl-change="input.item.data.links = $event.target.value"
+          placeholder="Link Adressen zum Artikel (ein Link pro Zeile)"
+          rows="1"
+          resize="auto"
           required
-        ></sl-input>
-        <sl-input
-          class="grow-5"
-          type="text"
-          :value="input.item.data.description"
-          @input="input.item.data.description = $event.target.value"
-          placeholder="Beschreibung (optional)"
-        ></sl-input>
-      </div>
-      <sl-textarea
-        ref="input-item-links"
-        class="check-input grow-1 mb-m"
-        :value="input.item.data.links"
-        @input="input.item.data.links = $event.target.value"
-        placeholder="Link Adressen zum Artikel (ein Link pro Zeile)"
-        rows="1"
-        resize="auto"
-        required
-      ></sl-textarea>
-      <div class="d-flex justify-end gap-m">
-        <sl-button v-if="input.item.mode=='UPDATE'" type="default" size="large" @click="resetItemInput()">
-          <sl-icon class="font-xl" slot="suffix" name="x"></sl-icon>
-          Lieber nicht ändern
-        </sl-button>
-        <sl-button v-if="input.item.mode=='UPDATE'" type="primary" size="large" @click="syncItem()">
-          <sl-icon class="font-xl" slot="suffix" name="pencil"></sl-icon>
-          Wunsch anpassen
-        </sl-button>
-        <sl-button v-if="input.item.mode=='INSERT'" type="primary" size="large" @click="syncItem()">
-          <sl-icon class="font-xl" slot="suffix" name="plus"></sl-icon>
-          Wünschen
-        </sl-button>
-      </div>
+        ></sl-textarea>
+        <div class="d-flex justify-end gap-m">
+          <sl-button v-if="input.item.mode=='UPDATE'" type="default" size="large" @click="resetItemInput()">
+            <sl-icon class="font-xl" slot="suffix" name="x"></sl-icon>
+            Lieber nicht ändern
+          </sl-button>
+          <sl-button v-if="input.item.mode=='UPDATE'" type="primary" size="large" submit>
+            <sl-icon class="font-xl" slot="suffix" name="pencil"></sl-icon>
+            Wunsch anpassen
+          </sl-button>
+          <sl-button v-if="input.item.mode=='INSERT'" type="primary" size="large" submit>
+            <sl-icon class="font-xl" slot="suffix" name="plus"></sl-icon>
+            Wünschen
+          </sl-button>
+        </div>
+      </sl-form>
     </section>
     <section ref="wishlist" class="mb-xxxl">
       <sl-details
@@ -350,9 +352,7 @@ export default {
     },
     // store new or edit existing item
     async syncItem () {
-      const validLinks = await this.$refs['input-item-links'].reportValidity()
-      const validTitle = await this.$refs['input-item-title'].reportValidity()
-      if (validTitle && validLinks) {
+      if (this.input.item.data.title && this.input.item.data.links) {
         // if valid input: get and preprocess item data
         let i = JSON.parse(JSON.stringify(this.input.item.data))
         i.links = i.links.split('\n').map(l => l.trim())
