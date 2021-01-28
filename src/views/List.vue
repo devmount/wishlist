@@ -47,14 +47,20 @@
         resize="auto"
         required
       ></sl-textarea>
-      <sl-button v-if="input.item.mode=='UPDATE'" type="primary" size="large" @click="syncItem()">
+      <div class="d-flex justify-end gap-m">
+        <sl-button v-if="input.item.mode=='UPDATE'" type="default" size="large" @click="resetItemInput()">
+          <sl-icon class="font-xl" slot="suffix" name="x"></sl-icon>
+          Lieber nicht ändern
+        </sl-button>
+        <sl-button v-if="input.item.mode=='UPDATE'" type="primary" size="large" @click="syncItem()">
           <sl-icon class="font-xl" slot="suffix" name="pencil"></sl-icon>
           Wunsch anpassen
-      </sl-button>
-      <sl-button v-else type="primary" size="large" @click="syncItem()">
+        </sl-button>
+        <sl-button v-if="input.item.mode=='INSERT'" type="primary" size="large" @click="syncItem()">
           <sl-icon class="font-xl" slot="suffix" name="plus"></sl-icon>
           Wünschen
-      </sl-button>
+        </sl-button>
+      </div>
     </section>
     <section ref="wishlist" class="mb-xxxl">
       <sl-details
@@ -277,7 +283,7 @@ export default {
     input: {
       item: {
         data: {},
-        mode: 'INSERT',
+        mode: '', // 'INSERT' | 'UPDATE'
         target: null,
       },
       list: {
@@ -288,7 +294,7 @@ export default {
     },
     dialog: {
       item: null,
-      action: '' // [reserve | purchase]
+      action: '' // 'reserve' | 'purchase'
     }
   }),
   async created () {
@@ -299,7 +305,7 @@ export default {
     await this.getList()
     await this.getItems()
     // init item and list input
-    this.input.item.data = JSON.parse(JSON.stringify(this.initItem))
+    this.resetItemInput()
     this.input.list.title = this.list.title
     this.input.list.color = this.list.color
     this.input.list.description = this.list.description
@@ -365,9 +371,7 @@ export default {
           default: break
         }
         // reset form
-        this.input.item.data = JSON.parse(JSON.stringify(this.initItem))
-        this.input.item.mode = 'INSERT'
-        this.input.item.target = null
+        this.resetItemInput()
       }
     },
     // edit existing item
@@ -377,6 +381,12 @@ export default {
       this.input.item.data = i
       this.input.item.mode = 'UPDATE'
       this.input.item.target = i.id
+    },
+    // reset item form
+    resetItemInput () {
+      this.input.item.data = JSON.parse(JSON.stringify(this.initItem))
+      this.input.item.mode = 'INSERT'
+      this.input.item.target = null
     },
     // open dialog for reservation confirmation
     confirmReserved (item) {
