@@ -14,7 +14,7 @@ body
   color: var(--sl-color-gray-800)
   margin: 0
 
-// headings
+// elements
 h1
   font-size: var(--sl-font-size-xxxx-large)
   font-weight: var(--sl-font-weight-light)
@@ -27,6 +27,10 @@ h3
   font-weight: var(--sl-font-weight-semibold)
 h1, h2, h3
   margin-top: 0
+  word-wrap: break-word
+@media (max-width: 960px)
+  h1
+    font-size: var(--sl-font-size-xx-large)
 a, a:visited
   color: var(--sl-color-primary-500)
   text-decoration: none
@@ -136,6 +140,10 @@ sl-switch
   --width: 65px
   --height: 28px
   --thumb-size: 32px
+
+// item
+.item
+  max-width: calc(100vw - 2*var(--sl-spacing-medium))
 
 // cursor
 .c-pointer
