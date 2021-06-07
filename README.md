@@ -1,6 +1,17 @@
-# wishlist
+<p align="center">
+<img src="https://user-images.githubusercontent.com/5441654/121005785-73fb5000-c790-11eb-82ea-ab8bd4b3d448.png" />
+</p>
 
-Create wishlists, add wishes, share with friends. Independent of shops or platforms.
+<h1 align="center">wishlist</h1>
+<p align="center">Create wishlists, add wishes, share with friends. Independent of shops or platforms.</p>
+
+<p align="center">
+<a href="https://github.com/devmount/wishlist/releases" target="_blank"><img src="https://img.shields.io/github/v/tag/devmount/wishlist.svg?label=wishlist&colorB=00abfb&style=flat-square" alt="release" /></a>
+<a href="https://github.com/devmount/wishlist/commits/main" target="_blank"><img src="https://img.shields.io/github/last-commit/devmount/wishlist?label=updated&color=00abfb&style=flat-square" alt="last commit" /></a>
+<a href="https://github.com/devmount/wishlist/actions?query=workflow%3ACodeQL" target="_blank"><img src="https://img.shields.io/github/workflow/status/devmount/wishlist/CodeQL?label=CodeQL&logo=github&color=00abfb&style=flat-square" alt="CodeQL analysis" /></a>
+<a href="./LICENSE" target="_blank"><img src="https://img.shields.io/github/license/devmount/wishlist.svg?colorB=00abfb&style=flat-square" alt="license" /></a>
+<a href="./.github/CONTRIBUTING.md" target="_blank"><img src="https://img.shields.io/badge/contributions-welcome-00abfb.svg?style=flat-square" alt="contributions welcome" /></a>
+</p>
 
 ## How does this work?
 
