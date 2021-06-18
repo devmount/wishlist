@@ -342,6 +342,8 @@ export default {
     this.resetListInput()
     // finished loading
     this.loading = false
+    // set browser title
+    document.title = this.admin ? 'wishlist - admin: ' + this.list.title : 'wishlist - ' + this.list.title
   },
   methods: {
     // retrieve list object
