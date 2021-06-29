@@ -28,7 +28,7 @@ CREATE TABLE items (
 	list bigint REFERENCES lists NOT NULL,
 	title varchar NOT NULL,
 	description text,
-	links varchar[] NOT NULL,
+	links varchar[],
 	state state DEFAULT 'open' NOT NULL,
 	created TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL,
 	modified TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
