@@ -46,7 +46,6 @@
           placeholder="Link Adressen zum Artikel (ein Link pro Zeile)"
           rows="1"
           resize="auto"
-          required
         ></sl-textarea>
         <div class="d-flex justify-end gap-m">
           <sl-button v-if="input.item.mode=='UPDATE'" type="default" size="large" @click="resetItemInput()">
@@ -91,12 +90,15 @@
               Letzte Aktivität <sl-relative-time :date="i.modified" locale="de"></sl-relative-time>
             </div>
           </div>
-          <div>
+          <div v-if="i.links.length > 0">
             Hier kann man das kaufen:
             <a class="d-flex align-items-center mt-xxs" v-for="l in i.links" :href="l" target="_blank">
               <sl-icon name="link-45deg" class="shrink-0 font-l mt-xxxs mr-xs"></sl-icon>
               <span class="text-overflow-ellipsis">{{ l }}</span>
             </a>
+          </div>
+          <div v-else>
+            Für diesen Wunsch sind keine Links hinterlegt.
           </div>
         </main>
         <!-- flag and manage item -->
@@ -384,10 +386,10 @@ export default {
     },
     // store new or edit existing item
     async syncItem () {
-      if (this.input.item.data.title && this.input.item.data.links) {
+      if (this.input.item.data.title) {
         // if valid input: get and preprocess item data
         let i = JSON.parse(JSON.stringify(this.input.item.data))
-        i.links = i.links.split('\n').map(l => l.trim())
+        i.links = i.links ? i.links.split('\n').map(l => l.trim()) : [];
         // check if new or edited item
         switch (this.input.item.mode) {
           case 'INSERT':
@@ -409,7 +411,7 @@ export default {
     // edit existing item
     editItem (item) {
       let i = JSON.parse(JSON.stringify(item))
-      i.links = item.links.join('\n')
+      i.links = item.links ? item.links.join('\n') : ''
       this.input.item.data = i
       this.input.item.mode = 'UPDATE'
       this.input.item.target = i.id
