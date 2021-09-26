@@ -23,7 +23,7 @@
         <div class="d-flex flex-wrap gap-m mb-m">
           <sl-input
             ref="input-item-title"
-            class="check-input grow-1"
+            class="check-input grow-5"
             type="text"
             :value="input.item.data.title"
             @sl-change="input.item.data.title = $event.target.value"
@@ -31,13 +31,20 @@
             required
           ></sl-input>
           <sl-input
-            class="grow-5"
+            class="grow-1"
             type="text"
-            :value="input.item.data.description"
-            @sl-change="input.item.data.description = $event.target.value"
-            placeholder="Beschreibung (optional)"
+            :value="input.item.data.price"
+            @sl-change="input.item.data.price = $event.target.value"
+            placeholder="Preis (optional)"
           ></sl-input>
         </div>
+        <sl-input
+          class="grow-1 mb-m"
+          type="text"
+          :value="input.item.data.description"
+          @sl-change="input.item.data.description = $event.target.value"
+          placeholder="Beschreibung (optional)"
+        ></sl-input>
         <sl-textarea
           ref="input-item-links"
           class="check-input grow-1 mb-m"
@@ -73,13 +80,17 @@
         @sl-show="closeOtherItems(n)"
       >
         <!-- item title and flag -->
-        <header slot="summary" class="d-flex align-items-center gap-m">
+        <header slot="summary" class="d-flex align-items-center gap-m width-full">
           <sl-icon v-if="i.state == 'purchased' && allowed" name="check-circle" class="font-xl"></sl-icon>
           <sl-icon v-else-if="i.state == 'reserved' && allowed" name="exclamation-circle" class="font-xl"></sl-icon>
           <sl-icon v-else name="circle" class="font-xl"></sl-icon>
           <h3 class="m-none">{{ i.title }}</h3>
           <sl-badge v-if="i.state == 'reserved' && allowed" type="info">RESERVIERT</sl-badge>
           <sl-badge v-if="i.state == 'purchased' && allowed" type="primary">GEKAUFT</sl-badge>
+          <div class="ml-auto mr-m text-mono">
+            <sl-icon name="tag"></sl-icon>
+            {{ i.price }}
+          </div>
         </header>
         <!-- item information -->
         <main class="d-grid gap-m two-col mb-m">
@@ -334,8 +345,8 @@ export default {
   }),
   async created () {
     // subscribe to all changes on the lists table and the items table to provide realtime experience
-    this.$supabase.from('lists').on('*', async payload => { await this.getList() }).subscribe()
-    this.$supabase.from('items').on('*', async payload => { await this.getItems() }).subscribe()
+    this.$supabase.from('lists').on('*', async () => { await this.getList() }).subscribe()
+    this.$supabase.from('items').on('*', async () => { await this.getItems() }).subscribe()
     // initially get all existing items
     await this.getList()
     await this.getItems()
@@ -350,7 +361,7 @@ export default {
   methods: {
     // retrieve list object
     async getList () {
-      const { data: lists, error } = await this.$supabase.from('lists').select('*')
+      const { data: lists, error } = await this.$supabase.from('lists').select();
       if (!error) {
         const requestedList = lists.find(l => l.slug_public == this.$route.params.public)
         this.list = requestedList ? requestedList : null
@@ -379,7 +390,7 @@ export default {
     // retrieve list of item objects
     async getItems () {
       if (this.list && this.list.id) {
-        const { data: items, error } = await this.$supabase.from('items').select('*').filter('list', 'eq', this.list.id)
+        const { data: items, error } = await this.$supabase.from('items').select().filter('list', 'eq', this.list.id)
         if (!error) this.items = items.sort((a,b) => a.created < b.created)
         else console.log(error)
       }
@@ -486,6 +497,7 @@ export default {
     initItem () {
       return {
         title: '',
+        price: '',
         description: '',
         links: '',
         list: this.list.id
