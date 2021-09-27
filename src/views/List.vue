@@ -38,15 +38,16 @@
             placeholder="Preis (optional)"
           ></sl-input>
         </div>
-        <sl-input
+        <sl-textarea
           class="grow-1 mb-m"
           type="text"
           :value="input.item.data.description"
           @sl-change="input.item.data.description = $event.target.value"
           placeholder="Beschreibung (optional)"
-        ></sl-input>
+          rows="1"
+          resize="auto"
+        ></sl-textarea>
         <sl-textarea
-          ref="input-item-links"
           class="check-input grow-1 mb-m"
           :value="input.item.data.links"
           @sl-change="input.item.data.links = $event.target.value"
@@ -87,7 +88,7 @@
           <h3 class="m-none">{{ i.title }}</h3>
           <sl-badge v-if="i.state == 'reserved' && allowed" type="info">RESERVIERT</sl-badge>
           <sl-badge v-if="i.state == 'purchased' && allowed" type="primary">GEKAUFT</sl-badge>
-          <div class="ml-auto mr-m text-mono">
+          <div v-if="i.price" class="ml-auto mr-m text-mono">
             <sl-icon name="tag"></sl-icon>
             {{ i.price }}
           </div>
