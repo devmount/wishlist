@@ -89,7 +89,7 @@
           <sl-badge v-if="i.state == 'reserved' && allowed" type="info">RESERVIERT</sl-badge>
           <sl-badge v-if="i.state == 'purchased' && allowed" type="primary">GEKAUFT</sl-badge>
           <div v-if="i.price" class="ml-auto mr-m text-mono">
-            <sl-icon name="tag"></sl-icon>
+            <sl-icon name="tag" class="content-middle"></sl-icon>
             {{ i.price }}
           </div>
         </header>
