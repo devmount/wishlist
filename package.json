@@ -9,17 +9,16 @@
   "dependencies": {
     "@supabase/supabase-js": "^1.2.1",
     "core-js": "^3.6.5",
-    "vue": "3.0.0",
+    "vue": "^3.2.27",
     "vue-loader": "^16.0.0-rc.1",
     "vue-router": "^4.0.0-0"
   },
   "devDependencies": {
-    "@vue/cli-plugin-babel": "~4.5.0",
-    "@vue/cli-plugin-router": "~4.5.0",
-    "@vue/cli-service": "~4.5.0",
-    "@vue/compiler-sfc": "3.0.0",
-    "stylus": "^0.54.7",
-    "stylus-loader": "^3.0.2"
+    "@vue/cli-plugin-babel": "^5.0.0-rc.2",
+    "@vue/cli-plugin-router": "^5.0.0-rc.2",
+    "@vue/cli-service": "^5.0.0-rc.2",
+    "stylus": "^0.56.0",
+    "stylus-loader": "^6.2.0"
   },
   "browserslist": [
     "> 1%",
