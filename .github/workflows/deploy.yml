@@ -1,4 +1,6 @@
-# This workflow will do a clean install of node dependencies, build the application and deploy it to production
+# This workflow will do a clean install of node dependencies,
+# build the application and deploy it to production
+# when a new version (git tag) is released
 
 name: Build & Deploy
 
@@ -12,10 +14,10 @@ jobs:
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v2
-    - name: Use Node.js 14.x
+    - name: Use Node.js 17
       uses: actions/setup-node@v1
       with:
-        node-version: 14.x
+        node-version: 17.x
     - name: Build app using Yarn
       run: |
         printf "VUE_APP_SB_KEY=${{ secrets.SB_KEY }}\nVUE_APP_SB_URL=${{ secrets.SB_URL }}" >> .env
@@ -23,11 +25,13 @@ jobs:
         yarn install
         yarn build
     - name: Push Build files to production
-      uses: kostya-ten/ssh-server-deploy@v4
+      uses: burnett01/rsync-deployments@5.2
       with:
-        host: ${{ secrets.DEPLOY_HOST }}
-        port: ${{ secrets.DEPLOY_PORT }}
-        username: ${{ secrets.DEPLOY_USER }}
-        password: ${{ secrets.DEPLOY_PASS }}
-        scp_source: dist/*
-        scp_target: ${{ secrets.DEPLOY_PATH }}
+        switches: -avzr --delete
+        path: dist/
+        remote_path: ${{ secrets.DEPLOY_PATH }}
+        remote_host: ${{ secrets.DEPLOY_HOST }}
+        remote_port: ${{ secrets.DEPLOY_PORT }}
+        remote_user: ${{ secrets.DEPLOY_USER }}
+        remote_key: ${{ secrets.DEPLOY_SSH_KEY }}
+        remote_key_pass: ${{ secrets.DEPLOY_SSH_PHRASE }}
