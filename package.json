@@ -10,7 +10,7 @@
     "@supabase/supabase-js": "^1.2.1",
     "core-js": "^3.6.5",
     "vue": "^3.2.27",
-    "vue-loader": "^16.0.0-rc.1",
+    "vue-loader": "^17.0.0",
     "vue-router": "^4.0.0-0"
   },
   "devDependencies": {

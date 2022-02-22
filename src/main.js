@@ -11,5 +11,4 @@ const SUPABASE_URL = process.env.VUE_APP_SB_URL
 const app = createApp(App)
 app.config.globalProperties.$version = process.env.VUE_APP_VERSION
 app.config.globalProperties.$supabase = createClient(SUPABASE_URL, SUPABASE_KEY)
-app.config.isCustomElement = tag => tag.startsWith('sl-')
 app.use(router).mount('#app')
