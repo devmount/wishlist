@@ -8,17 +8,18 @@
   },
   "dependencies": {
     "@supabase/supabase-js": "^1.2.1",
-    "core-js": "^3.6.5",
     "vue": "^3.2.27",
-    "vue-loader": "^17.0.0",
     "vue-router": "^4.0.0-0"
   },
   "devDependencies": {
-    "@vue/cli-plugin-babel": "^5.0.0-rc.2",
-    "@vue/cli-plugin-router": "^5.0.0-rc.2",
-    "@vue/cli-service": "^5.0.0-rc.2",
+    "@babel/core": "7.20.2",
+    "@vue/cli-plugin-babel": "^5.0.8",
+    "@vue/cli-plugin-router": "^5.0.8",
+    "@vue/cli-service": "^5.0.8",
     "stylus": "^0.56.0",
-    "stylus-loader": "^6.2.0"
+    "stylus-loader": "^7.1.0",
+    "vue-loader": "^17.0.0",
+    "webpack": "^5.75.0"
   },
   "browserslist": [
     "> 1%",
