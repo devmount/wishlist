@@ -357,7 +357,7 @@ export default {
     // finished loading
     this.loading = false
     // set browser title
-    document.title = this.admin ? 'wishlist - admin: ' + this.list.title : 'wishlist - ' + this.list.title
+    document.title = this.admin ? 'wishlist - admin: ' + this.list?.title : 'wishlist - ' + this.list?.title
   },
   methods: {
     // retrieve list object
@@ -376,7 +376,7 @@ export default {
         const { data, error} = await this.$supabase
           .from('lists')
           .update(this.input.list)
-          .match({ id: this.list.id })
+          .match({ id: this.list?.id })
         if (!error) this.list = data[0]
         else console.log(error)
         this.$refs.drawer.hide()
@@ -384,13 +384,13 @@ export default {
     },
     // reset list form
     resetListInput () {
-      this.input.list.title = this.list.title
-      this.input.list.color = this.list.color
-      this.input.list.description = this.list.description
+      this.input.list.title = this.list?.title
+      this.input.list.color = this.list?.color
+      this.input.list.description = this.list?.description
     },
     // retrieve list of item objects
     async getItems () {
-      if (this.list && this.list.id) {
+      if (this.list?.id) {
         const { data: items, error } = await this.$supabase.from('items').select().filter('list', 'eq', this.list.id)
         if (!error) this.items = items.sort((a,b) => a.created < b.created)
         else console.log(error)
@@ -486,7 +486,7 @@ export default {
     },
     // send given text as body content in new email
     sendEmail (text) {
-      window.location = "mailto:?subject=Meine Wunschliste: " + this.list.title + "&body=" + text
+      window.location = "mailto:?subject=Meine Wunschliste: " + this.list?.title + "&body=" + text
     },
     // close all other list items if one is shown
     closeOtherItems (index) {
@@ -501,7 +501,7 @@ export default {
         price: '',
         description: '',
         links: '',
-        list: this.list.id
+        list: this.list?.id
       }
     },
     // return base url
@@ -518,19 +518,19 @@ export default {
     },
     // check if admin token is given and correct
     admin () {
-      return this.$route.params.private && this.list.slug_private === this.$route.params.private
+      return this.$route.params.private && this.list?.slug_private === this.$route.params.private
     },
     // check if public token is given and correct
     visitor () {
-      return this.$route.params.public && this.list.slug_public === this.$route.params.public && !this.$route.params.private
+      return this.$route.params.public && this.list?.slug_public === this.$route.params.public && !this.$route.params.private
     },
     // approve if something is allowed to be shown
     allowed () {
-      return this.visitor || this.list.spoiler
+      return this.visitor || this.list?.spoiler
     },
     // prived accent color once list color is loaded
     accent () {
-      return this.list && this.list.color ? this.list.color : '#000000'
+      return this.list?.color ? this.list.color : '#000000'
     }
   },
   watch: {
@@ -539,7 +539,7 @@ export default {
       await this.getItems()
     },
     'list.spoiler': async function (newVal) {
-      await this.$supabase.from('lists').update({ spoiler: newVal }).match({ id: this.list.id })
+      await this.$supabase.from('lists').update({ spoiler: newVal }).match({ id: this.list?.id })
     }
   }
 }
