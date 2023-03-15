@@ -19,7 +19,7 @@
     "stylus": "^0.56.0",
     "stylus-loader": "^7.1.0",
     "vue-loader": "^17.0.0",
-    "webpack": "^5.75.0"
+    "webpack": "^5.76.0"
   },
   "browserslist": [
     "> 1%",
