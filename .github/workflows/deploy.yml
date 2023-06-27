@@ -20,7 +20,7 @@ jobs:
         node-version: 17.x
     - name: Build app using Yarn
       run: |
-        printf "VUE_APP_SB_KEY=${{ secrets.SB_KEY }}\nVUE_APP_SB_URL=${{ secrets.SB_URL }}" >> .env
+        printf "VITE_SB_KEY=${{ secrets.SB_KEY }}\nVITE_SB_URL=${{ secrets.SB_URL }}" >> .env
         npm install -g yarn
         yarn install
         yarn build
