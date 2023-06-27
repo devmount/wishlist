@@ -1,14 +1,19 @@
-// Vue
-import { createApp } from 'vue'
-import App from './App.vue'
-import router from './router'
+// init app
+import { createApp } from 'vue';
+import App from '@/App.vue';
+const app = createApp(App);
+
+// init router
+import router from '@/router'
+app.use(router);
 
 // Supabase
-import { createClient } from '@supabase/supabase-js'
-const SUPABASE_KEY = process.env.VUE_APP_SB_KEY
-const SUPABASE_URL = process.env.VUE_APP_SB_URL
+import { createClient } from '@supabase/supabase-js';
+const SUPABASE_KEY = import.meta.env.VITE_SB_KEY;
+const SUPABASE_URL = import.meta.env.VITE_SB_URL;
 
-const app = createApp(App)
-app.config.globalProperties.$version = process.env.VUE_APP_VERSION
-app.config.globalProperties.$supabase = createClient(SUPABASE_URL, SUPABASE_KEY)
-app.use(router).mount('#app')
+app.provide('supabase', createClient(SUPABASE_URL, SUPABASE_KEY));
+app.provide('version', APP_VERSION);
+
+// ready? let's go!
+app.mount('#app');

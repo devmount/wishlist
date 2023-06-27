@@ -316,12 +316,18 @@
 </template>
 
 <script>
+import { inject } from 'vue';
+
 // import partials
-import Logo from './partials/Logo'
+import Logo from '@/views/partials/Logo.vue';
 
 export default {
   name: 'App',
   components: { Logo },
+  setup () {
+    const supabase = inject('supabase');
+    return { supabase }
+  },
   data: () => ({
     loading: true,
     list: null,
@@ -346,8 +352,8 @@ export default {
   }),
   async created () {
     // subscribe to all changes on the lists table and the items table to provide realtime experience
-    this.$supabase.from('lists').on('*', async () => { await this.getList() }).subscribe()
-    this.$supabase.from('items').on('*', async () => { await this.getItems() }).subscribe()
+    this.supabase.from('lists').on('*', async () => { await this.getList() }).subscribe()
+    this.supabase.from('items').on('*', async () => { await this.getItems() }).subscribe()
     // initially get all existing items
     await this.getList()
     await this.getItems()
@@ -362,7 +368,7 @@ export default {
   methods: {
     // retrieve list object
     async getList () {
-      const { data: lists, error } = await this.$supabase.from('lists').select();
+      const { data: lists, error } = await this.supabase.from('lists').select();
       if (!error) {
         const requestedList = lists.find(l => l.slug_public == this.$route.params.public)
         this.list = requestedList ? requestedList : null
@@ -373,7 +379,7 @@ export default {
     // edit list
     async syncList () {
       if (this.input.list.title) {
-        const { data, error} = await this.$supabase
+        const { data, error} = await this.supabase
           .from('lists')
           .update(this.input.list)
           .match({ id: this.list?.id })
@@ -391,7 +397,7 @@ export default {
     // retrieve list of item objects
     async getItems () {
       if (this.list?.id) {
-        const { data: items, error } = await this.$supabase.from('items').select().filter('list', 'eq', this.list.id)
+        const { data: items, error } = await this.supabase.from('items').select().filter('list', 'eq', this.list.id)
         if (!error) this.items = items.sort((a,b) => a.created < b.created)
         else console.log(error)
       }
@@ -405,12 +411,12 @@ export default {
         // check if new or edited item
         switch (this.input.item.mode) {
           case 'INSERT':
-            const insertResult = await this.$supabase.from('items').insert(i)
+            const insertResult = await this.supabase.from('items').insert(i)
             if (!insertResult.error) this.items.unshift(i)
             else console.log(insertResult.error)
             break
           case 'UPDATE':
-            const updateResult = await this.$supabase.from('items').update(i).match({ id: this.input.item.target })
+            const updateResult = await this.supabase.from('items').update(i).match({ id: this.input.item.target })
             if (!updateResult.error) this.items[this.getItemPosition(i.id)] = i
             else console.log(updateResult.error)
             break
@@ -443,7 +449,7 @@ export default {
     // set item state to reserved or open and close dialog
     async toggleReserved (item) {
       const state = item.state == 'reserved' ? 'open' : 'reserved'
-      const { data, error } = await this.$supabase.from('items').update({ state: state }).match({ id: item.id })
+      const { data, error } = await this.supabase.from('items').update({ state: state }).match({ id: item.id })
       if (!error) this.items[this.getItemPosition(data[0].id)].state = state
       else console.log(error)
       this.$refs['dialog-reserve'].hide()
@@ -457,7 +463,7 @@ export default {
     // set item state to purchased or open
     async togglePurchased (item) {
       const state = item.state == 'purchased' ? 'open' : 'purchased'
-      const { data, error } = await this.$supabase.from('items').update({ state: state }).match({ id: item.id })
+      const { data, error } = await this.supabase.from('items').update({ state: state }).match({ id: item.id })
       if (!error) this.items[this.getItemPosition(data[0].id)].state = state
       else console.log(error)
       this.$refs['dialog-purchase'].hide()
@@ -470,7 +476,7 @@ export default {
     },
     // delete existing item
     async deleteItem (item) {
-      const deleteResult = await this.$supabase.from('items').delete().match({ id: item.id })
+      const deleteResult = await this.supabase.from('items').delete().match({ id: item.id })
       if (!deleteResult.error) this.items.slice(this.getItemPosition(item.id), 1)
       else console.log(error)
       this.$refs['dialog-delete'].hide()
@@ -539,32 +545,39 @@ export default {
       await this.getItems()
     },
     'list.spoiler': async function (newVal) {
-      await this.$supabase.from('lists').update({ spoiler: newVal }).match({ id: this.list?.id })
+      await this.supabase.from('lists').update({ spoiler: newVal }).match({ id: this.list?.id })
     }
   }
 }
 </script>
 
-<style lang="stylus">
-.item
-  border-top-left-radius: var(--sl-border-radius-medium)
-  &[reserved=true]
-    background: linear-gradient(135deg, var(--sl-color-gray-500) 0%, var(--sl-color-gray-500) 24px, transparent 24px);
-    h3
-      color: var(--sl-color-gray-400)
-  &[purchased=true]
-    background: linear-gradient(135deg, var(--sl-color-primary-500) 0%, var(--sl-color-primary-500) 24px, transparent 24px);
-    h3
-      color: var(--sl-color-gray-400)
-      text-decoration: line-through
-.menu
-  height: var(--sl-spacing-xxxx-large)
-  width: var(--sl-spacing-xxxx-large)
-  display: flex
+<style>
+.item {
+  border-top-left-radius: var(--sl-border-radius-medium);
+}
+.item[reserved=true] {
+  background: linear-gradient(135deg, var(--sl-color-gray-500) 0%, var(--sl-color-gray-500) 24px, transparent 24px);
+}
+.item[reserved=true] h3 {
+  color: var(--sl-color-gray-400);
+}
+.item[purchased=true] {
+  background: linear-gradient(135deg, var(--sl-color-primary-500) 0%, var(--sl-color-primary-500) 24px, transparent 24px);
+}
+.item[purchased=true] h3 {
+  color: var(--sl-color-gray-400);
+  text-decoration: line-through;
+}
+.menu {
+  height: var(--sl-spacing-xxxx-large);
+  width: var(--sl-spacing-xxxx-large);
+  display: flex;
   justify-content: center;
-  align-items: center
-  cursor: pointer
-  transition: color var(--sl-transition-fast) ease
-  &:hover
-    color: var(--sl-color-primary-500)
+  align-items: center;
+  cursor: pointer;
+  transition: color var(--sl-transition-fast) ease;
+}
+.menu:hover {
+  color: var(--sl-color-primary-500);
+}
 </style>

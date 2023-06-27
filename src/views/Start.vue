@@ -22,6 +22,7 @@
           :value="input.title"
           @input="input.title = $event.target.value"
           placeholder="Titel der Liste"
+          autocomplete="title"
           required
         ></sl-input>
         <sl-color-picker
@@ -86,12 +87,18 @@
 </template>
 
 <script>
+import { inject } from 'vue';
+
 // import partials
-import Logo from './partials/Logo'
+import Logo from '@/views/partials/Logo.vue';
 
 export default {
   name: 'App',
   components: { Logo },
+  setup () {
+    const supabase = inject('supabase');
+    return { supabase }
+  },
   data: () => ({
     input: {
       title: '',
@@ -113,7 +120,7 @@ export default {
       if (this.input.title) {
         const slugPublic = this.generateSlug(10)
         const slugPrivate = this.generateSlug(16)
-        const { data, error } = await this.$supabase.from('lists').insert({
+        const { data, error } = await this.supabase.from('lists').insert({
           'title': this.input.title,
           'color': this.input.color,
           'description': this.input.description,
@@ -155,6 +162,3 @@ export default {
   }
 }
 </script>
-
-<style lang="stylus">
-</style>

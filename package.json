@@ -3,8 +3,9 @@
   "version": "0.3.2",
   "private": true,
   "scripts": {
-    "serve": "vue-cli-service serve",
-    "build": "vue-cli-service build"
+    "dev": "vite",
+    "build": "vite build",
+    "serve": "vite preview"
   },
   "dependencies": {
     "@supabase/supabase-js": "^1.2.1",
@@ -12,14 +13,8 @@
     "vue-router": "^4.0.0-0"
   },
   "devDependencies": {
-    "@babel/core": "7.20.2",
-    "@vue/cli-plugin-babel": "^5.0.8",
-    "@vue/cli-plugin-router": "^5.0.8",
-    "@vue/cli-service": "^5.0.8",
-    "stylus": "^0.56.0",
-    "stylus-loader": "^7.1.0",
-    "vue-loader": "^17.0.0",
-    "webpack": "^5.76.0"
+    "@vitejs/plugin-vue": "^4.2.3",
+    "vite": "^4.3.9"
   },
   "browserslist": [
     "> 1%",

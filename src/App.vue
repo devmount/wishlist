@@ -3,40 +3,50 @@
     <router-view/>
   </main>
   <footer>
-    <sl-button class="mb-xxxl" type="info" size="large" @click="$router.push({ name: 'start' })">
+    <sl-button class="mb-xxxl" type="info" size="large" @click="router.push({ name: 'start' })">
       Zur Startseite
       <sl-icon slot="suffix" size="large" name="house-door"></sl-icon>
     </sl-button>
     <div class="mb-m">
-      Wishlist {{ $version }} von Andreas Müller
+      Wishlist {{ version }} von Andreas Müller
     </div>
     <div>
-      &copy; 2021 <a href="https://devmount.de" target="_blank">devmount</a>
+      &copy; 2021-{{ (new Date()).getFullYear() }} <a href="https://devmount.de" target="_blank">devmount</a>
     </div>
   </footer>
 </template>
 
-<style lang="stylus">
-@import "assets/global"
+<script setup>
+import { inject } from "vue";
+import { useRouter } from 'vue-router';
 
-#app
-  display: grid
-  grid-template-rows: auto auto
-  min-height: 100vh
+// global properties
+const version = inject('version');
+const router = useRouter();
+</script>
 
-#app > main
-  margin: 0 auto
-  padding: var(--sl-spacing-xxx-large) var(--sl-spacing-medium) var(--sl-spacing-xxxx-large) var(--sl-spacing-medium)
+<style>
+@import "assets/global.css";
 
-#app > footer
-  text-align: center
-  padding: var(--sl-spacing-xxxx-large) var(--sl-spacing-medium)
-  background: var(--sl-color-gray-800)
-  color: var(--sl-color-primary-100)
-
-// responsiveness
-@media (min-width: break)
-  #app > main
-    max-width: break
+#app {
+  display: grid;
+  grid-template-rows: auto auto;
+  min-height: 100vh;
+}
+#app > main {
+  margin: 0 auto;
+  padding: var(--sl-spacing-xxx-large) var(--sl-spacing-medium) var(--sl-spacing-xxxx-large) var(--sl-spacing-medium);
+}
+#app > footer {
+  text-align: center;
+  padding: var(--sl-spacing-xxxx-large) var(--sl-spacing-medium);
+  background: var(--sl-color-gray-800);
+  color: var(--sl-color-primary-100);
+}
+@media (min-width: 740px) {
+  #app > main {
+    max-width: 740px;
+  }
+}
 
 </style>

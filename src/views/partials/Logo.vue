@@ -8,13 +8,14 @@
 	</svg>
 </template>
 
-<style lang="stylus">
-.logo
-	width: 8rem
-	height: 8rem
-	stroke-width: .625
-	fill: none
-	stroke-linecap: round
-	stroke-linejoin: round
-	stroke: currentColor
+<style>
+.logo {
+  width: 8rem;
+  height: 8rem;
+  stroke-width: 0.625;
+  fill: none;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke: currentColor;
+}
 </style>

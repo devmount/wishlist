@@ -40,7 +40,7 @@ This is a little web app with a Vue3 frontend and a Supabase backend that enable
 6. Compile and hot-reload for development ...
 
     ```bash
-    yarn serve
+    yarn dev
     ```
 
 7. ... or compile and minify for production:
