@@ -13,7 +13,7 @@
       Optional kannst du den Beschreibungstext nutzen, um die Besucher deiner Wunschliste zu informieren,
       was dir beim Schenken wichtig ist.
     </p>
-    <form ref="start" class="content-center">
+    <form @submit.prevent="addList()" class="content-center">
       <div class="d-flex gap-m mb-m">
         <sl-input
           ref="input-title"
@@ -109,12 +109,6 @@ export default {
   }),
   created () {
     this.getLocalListEntries();
-  },
-  mounted () {
-    this.$refs.start.addEventListener('submit', event => {
-      event.preventDefault();
-      this.addList();
-    });
   },
   methods: {
     // get all existing lists from local storage

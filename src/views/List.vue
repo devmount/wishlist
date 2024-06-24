@@ -224,7 +224,7 @@
       </form>
       <h3 class="mt-2xl">Spoiler</h3>
       <p>Wenn aktiviert, werden alle Reservierungen und Käufe auch in der Verwaltungsansicht der Wunschliste (geheimer Link) angezeigt.</p>
-      <sl-switch :value="list.spoiler" @input="list.spoiler = !list.spoiler" :checked="list.spoiler"></sl-switch>
+      <sl-switch @sl-change="list.spoiler = !list.spoiler" v-model="list.spoiler"></sl-switch>
     </sl-drawer>
     <!-- dialog: item state handling reservation -->
     <sl-dialog ref="dialog-reserve">
@@ -545,6 +545,7 @@ export default {
       await this.getItems()
     },
     'list.spoiler': async function (newVal) {
+      console.log(this.list.spoiler)
       await this.supabase.from('lists').update({ spoiler: newVal }).match({ id: this.list?.id })
     }
   }
