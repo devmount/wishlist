@@ -3,7 +3,7 @@
     <Logo />
     <h1>Wunschliste</h1>
   </header>
-  <section class="mb-xxxl">
+  <section class="mb-3xl">
     <h2>
       <sl-icon class="font-xl" name="lightning"></sl-icon>
       Starte eine neue Liste
@@ -13,7 +13,7 @@
       Optional kannst du den Beschreibungstext nutzen, um die Besucher deiner Wunschliste zu informieren,
       was dir beim Schenken wichtig ist.
     </p>
-    <sl-form @sl-submit="addList()" class="content-center">
+    <form @submit.prevent="addList()" class="content-center">
       <div class="d-flex gap-m mb-m">
         <sl-input
           ref="input-title"
@@ -39,11 +39,11 @@
         rows="1"
         resize="auto"
       ></sl-textarea>
-      <sl-button type="primary" size="large" submit>
-        <sl-icon class="font-xl" slot="suffix" name="arrow-right"></sl-icon>
+      <sl-button type="submit" variant="primary" size="medium">
+        <sl-icon class="font-l" slot="suffix" name="arrow-right"></sl-icon>
         Los geht's
       </sl-button>
-    </sl-form>
+    </form>
   </section>
   <section>
     <h2>
@@ -61,18 +61,18 @@
         am <sl-format-date :date="l.ts" month="long" day="numeric" year="numeric" locale="de"></sl-format-date>
         <div slot="footer" class="font-xl">
           <sl-tooltip content="Eintrag löschen" placement="bottom">
-            <sl-button type="danger" size="large" @click="removeLocalListEntry(i)">
+            <sl-button variant="danger" size="large" @click="removeLocalListEntry(i)">
               <sl-icon name="trash"></sl-icon>
             </sl-button>
           </sl-tooltip>
           <sl-button-group class="ml-m">
             <sl-tooltip content="Geteilte Ansicht" placement="bottom">
-              <sl-button type="default" size="large" @click="$router.push({ name: 'public', params: { public: l.pu }})">
+              <sl-button variant="default" size="large" @click="$router.push({ name: 'public', params: { public: l.pu }})">
                 <sl-icon name="share"></sl-icon>
               </sl-button>
             </sl-tooltip>
             <sl-tooltip content="Liste bearbeiten" placement="bottom">
-              <sl-button type="default" size="large" @click="$router.push({ name: 'private', params: { public: l.pu, private: l.pr }})">
+              <sl-button variant="default" size="large" @click="$router.push({ name: 'private', params: { public: l.pu, private: l.pr }})">
                 <sl-icon name="pencil"></sl-icon>
               </sl-button>
             </sl-tooltip>
@@ -108,7 +108,7 @@ export default {
     localLists: []
   }),
   created () {
-    this.getLocalListEntries()
+    this.getLocalListEntries();
   },
   methods: {
     // get all existing lists from local storage
