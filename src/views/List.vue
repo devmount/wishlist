@@ -545,7 +545,6 @@ export default {
       await this.getItems()
     },
     'list.spoiler': async function (newVal) {
-      console.log(this.list.spoiler)
       await this.supabase.from('lists').update({ spoiler: newVal }).match({ id: this.list?.id })
     }
   }
