@@ -1,25 +1,25 @@
 <template>
   <div v-if="loading">
-    <header class="content-center mb-xxxl">
+    <header class="content-center mb-3xl">
       <Logo @click="$router.push({ name: 'start' })" class="c-pointer" />
-      <div class="mt-xxl">
-        <sl-spinner class="font-xxxl"></sl-spinner>
+      <div class="mt-2xl">
+        <sl-spinner class="font-3xl"></sl-spinner>
       </div>
     </header>
   </div>
   <div v-else-if="list && list.id">
-    <header class="content-center mb-xxxl">
+    <header class="content-center mb-3xl">
       <Logo @click="$router.push({ name: 'start' })" :style="{ color: accent }" class="c-pointer" />
       <h1>{{ list.title }}</h1>
       <hr :style="{ background: accent }" /> 
       <p>{{ list.description }}</p>
     </header>
-    <section v-if="admin" class="mb-xxxl">
+    <section v-if="admin" class="mb-3xl">
       <h2>
         <sl-icon class="font-xl" name="bag-plus"></sl-icon>
         Füge einen Wunsch hinzu
       </h2>
-      <sl-form @sl-submit="syncItem()">
+      <form @submit.prevent="syncItem()">
         <div class="d-flex flex-wrap gap-m mb-m">
           <sl-input
             ref="input-item-title"
@@ -56,24 +56,24 @@
           resize="auto"
         ></sl-textarea>
         <div class="d-flex justify-end gap-m">
-          <sl-button v-if="input.item.mode=='UPDATE'" type="default" size="large" @click="resetItemInput()">
+          <sl-button v-if="input.item.mode=='UPDATE'" variant="default" size="large" @click="resetItemInput()">
             <sl-icon class="font-xl" slot="suffix" name="arrow-return-left"></sl-icon>
             Lieber nicht ändern
           </sl-button>
-          <sl-button v-if="input.item.mode=='UPDATE'" type="primary" size="large" submit>
+          <sl-button v-if="input.item.mode=='UPDATE'" type="submit" variant="primary" size="large">
             <sl-icon class="font-xl" slot="suffix" name="pencil"></sl-icon>
             Wunsch anpassen
           </sl-button>
-          <sl-button v-if="input.item.mode=='INSERT'" type="primary" size="large" submit>
+          <sl-button v-if="input.item.mode=='INSERT'" type="submit" variant="primary" size="large">
             <sl-icon class="font-xl" slot="suffix" name="plus"></sl-icon>
             Wünschen
           </sl-button>
         </div>
-      </sl-form>
+      </form>
     </section>
-    <section ref="wishlist" class="mb-xxxl">
+    <section ref="wishlist" class="mb-3xl">
       <sl-details
-        class="item mb-xxs"
+        class="item mb-2xs"
         v-for="(i, n) in items"
         :key="i.id"
         :reserved="i.state == 'reserved' && allowed"
@@ -86,8 +86,8 @@
           <sl-icon v-else-if="i.state == 'reserved' && allowed" name="exclamation-circle" class="font-xl"></sl-icon>
           <sl-icon v-else name="circle" class="font-xl"></sl-icon>
           <h3 class="m-none">{{ i.title }}</h3>
-          <sl-badge v-if="i.state == 'reserved' && allowed" type="info">RESERVIERT</sl-badge>
-          <sl-badge v-if="i.state == 'purchased' && allowed" type="primary">GEKAUFT</sl-badge>
+          <sl-badge v-if="i.state == 'reserved' && allowed" variant="neutral">RESERVIERT</sl-badge>
+          <sl-badge v-if="i.state == 'purchased' && allowed" variant="primary">GEKAUFT</sl-badge>
           <div v-if="i.price" class="ml-auto mr-m text-mono">
             <sl-icon name="tag" class="content-middle"></sl-icon>
             {{ i.price }}
@@ -104,8 +104,8 @@
           </div>
           <div v-if="i.links.length > 0">
             Hier kann man das kaufen:
-            <a class="d-flex align-items-center mt-xxs" v-for="l in i.links" :href="l" target="_blank">
-              <sl-icon name="link-45deg" class="shrink-0 font-l mt-xxxs mr-xs"></sl-icon>
+            <a class="d-flex align-items-center mt-2xs" v-for="l in i.links" :href="l" target="_blank">
+              <sl-icon name="link-45deg" class="shrink-0 font-l mt-3xs mr-xs"></sl-icon>
               <span class="text-overflow-ellipsis">{{ l }}</span>
             </a>
           </div>
@@ -115,26 +115,26 @@
         </main>
         <!-- flag and manage item -->
         <footer class="d-flex justify-end flex-wrap gap-m">
-          <sl-button v-if="admin" type="danger" size="large" @click="confirmRemoval(i)">
+          <sl-button v-if="admin" variant="danger" size="large" @click="confirmRemoval(i)">
             <sl-icon name="trash"></sl-icon>
           </sl-button>
-          <sl-button v-if="admin" class="mr-auto" type="primary" size="large" @click="editItem(i)">
+          <sl-button v-if="admin" class="mr-auto" variant="primary" size="large" @click="editItem(i)">
             <sl-icon name="pencil"></sl-icon>
           </sl-button>
           <sl-button-group>
-            <sl-button v-if="i.state != 'reserved'" type="info" size="large" @click="confirmReserved(i)">
+            <sl-button v-if="i.state != 'reserved'" variant="neutral" size="large" @click="confirmReserved(i)">
               <sl-icon class="font-xl" slot="suffix" name="patch-exclamation"></sl-icon>
               Reserviere ich
             </sl-button>
-            <sl-button v-else type="info" size="large" @click="confirmReserved(i)">
+            <sl-button v-else variant="neutral" size="large" @click="confirmReserved(i)">
               <sl-icon class="font-xl" slot="suffix" name="patch-minus"></sl-icon>
               Doch nicht reserviert
             </sl-button>
-            <sl-button v-if="i.state != 'purchased'" type="primary" size="large" @click="confirmPurchased(i)">
+            <sl-button v-if="i.state != 'purchased'" variant="primary" size="large" @click="confirmPurchased(i)">
                 <sl-icon class="font-xl" slot="suffix" name="cart-check"></sl-icon>
                 Habe ich gekauft
             </sl-button>
-            <sl-button v-else type="primary" size="large" @click="confirmPurchased(i)">
+            <sl-button v-else variant="primary" size="large" @click="confirmPurchased(i)">
               <sl-icon class="font-xl" slot="suffix" name="cart-dash"></sl-icon>
               Doch nicht gekauft
             </sl-button>
@@ -142,7 +142,7 @@
         </footer>
       </sl-details>
     </section>
-    <section v-if="admin" class="mb-xxxl">
+    <section v-if="admin" class="mb-3xl">
       <h2>
         <sl-icon class="font-xl" name="share"></sl-icon>
         Teile deine Wunschliste
@@ -162,7 +162,7 @@
         </sl-button-group>
       </div>
     </section>
-    <section v-if="admin" class="mb-xxxl">
+    <section v-if="admin" class="mb-3xl">
       <h2>
         <sl-icon class="font-xl" name="shield-lock"></sl-icon>
         Verwalte deine Wunschliste
@@ -185,13 +185,13 @@
     <!-- admin area trigger -->
     <div class="admin p-fixed-top-right">
       <div v-if="admin" class="menu" @click="$refs.drawer.show()">
-        <sl-icon class="font-xxxl" name="list"></sl-icon>
+        <sl-icon class="font-3xl" name="list"></sl-icon>
       </div>
     </div>
     <!-- admin area for list -->
     <sl-drawer ref="drawer" label="Administration">
       <h3>Bearbeite deine Wunschliste</h3>
-      <sl-form @sl-submit="syncList()">
+      <form @submit.prevent="syncList()">
         <div v-if="list && list.id" class="d-flex-column gap-m mb-m">
           <div class="d-flex gap-m">
             <sl-input
@@ -217,12 +217,12 @@
             resize="auto"
           ></sl-textarea>
         </div>
-        <sl-button type="primary" size="large" submit>
+        <sl-button type="submit" variant="primary" size="large">
             <sl-icon class="font-xl" slot="suffix" name="pencil"></sl-icon>
             Wunschliste anpassen
         </sl-button>
-      </sl-form>
-      <h3 class="mt-xxl">Spoiler</h3>
+      </form>
+      <h3 class="mt-2xl">Spoiler</h3>
       <p>Wenn aktiviert, werden alle Reservierungen und Käufe auch in der Verwaltungsansicht der Wunschliste (geheimer Link) angezeigt.</p>
       <sl-switch :value="list.spoiler" @input="list.spoiler = !list.spoiler" :checked="list.spoiler"></sl-switch>
     </sl-drawer>
@@ -240,15 +240,15 @@
         und er wird für jeden wieder als verfügbar angezeigt.
       </div>
       <div slot="footer">
-        <sl-button type="default" @click="$refs['dialog-reserve'].hide()" class="mr-s" size="large">
+        <sl-button variant="default" @click="$refs['dialog-reserve'].hide()" class="mr-s" size="large">
           <sl-icon class="font-xl" slot="suffix" name="arrow-return-left"></sl-icon>
           Lieber nicht
         </sl-button>
-        <sl-button v-if="dialog.item && dialog.item.state != 'reserved'" type="info" size="large" @click="toggleReserved(dialog.item)">
+        <sl-button v-if="dialog.item && dialog.item.state != 'reserved'" variant="neutral" size="large" @click="toggleReserved(dialog.item)">
           <sl-icon class="font-xl" slot="suffix" name="patch-exclamation"></sl-icon>
           Ja, bitte reservieren
         </sl-button>
-        <sl-button v-if="dialog.item && dialog.item.state == 'reserved'" type="info" size="large" @click="toggleReserved(dialog.item)">
+        <sl-button v-if="dialog.item && dialog.item.state == 'reserved'" variant="neutral" size="large" @click="toggleReserved(dialog.item)">
           <sl-icon class="font-xl" slot="suffix" name="patch-minus"></sl-icon>
           Ja, Reservierung aufheben
         </sl-button>
@@ -268,15 +268,15 @@
         und er wird für jeden wieder als verfügbar angezeigt.
       </div>
       <div slot="footer">
-        <sl-button type="default" @click="$refs['dialog-purchase'].hide()" class="mr-s" size="large">
+        <sl-button variant="default" @click="$refs['dialog-purchase'].hide()" class="mr-s" size="large">
           <sl-icon class="font-xl" slot="suffix" name="arrow-return-left"></sl-icon>
           Lieber nicht
         </sl-button>
-        <sl-button v-if="dialog.item && dialog.item.state != 'purchased'" type="primary" size="large" @click="togglePurchased(dialog.item)">
+        <sl-button v-if="dialog.item && dialog.item.state != 'purchased'" variant="primary" size="large" @click="togglePurchased(dialog.item)">
           <sl-icon class="font-xl" slot="suffix" name="cart-check"></sl-icon>
           Ja, hab ich gekauft
         </sl-button>
-        <sl-button v-if="dialog.item && dialog.item.state == 'purchased'" type="primary" size="large" @click="togglePurchased(dialog.item)">
+        <sl-button v-if="dialog.item && dialog.item.state == 'purchased'" variant="primary" size="large" @click="togglePurchased(dialog.item)">
           <sl-icon class="font-xl" slot="suffix" name="cart-dash"></sl-icon>
           Ja, der Kauf hat nicht geklappt
         </sl-button>
@@ -291,11 +291,11 @@
         Damit entfernst den Wunsch «{{ dialog.item.title }}». Dieses Aktion kann nicht rückgängig gemacht werden.
       </div>
       <div slot="footer">
-        <sl-button type="default" @click="$refs['dialog-delete'].hide()" class="mr-s" size="large">
+        <sl-button variant="default" @click="$refs['dialog-delete'].hide()" class="mr-s" size="large">
           <sl-icon class="font-xl" slot="suffix" name="arrow-return-left"></sl-icon>
           Lieber nicht
         </sl-button>
-        <sl-button type="danger" size="large" @click="deleteItem(dialog.item)">
+        <sl-button variant="danger" size="large" @click="deleteItem(dialog.item)">
           <sl-icon class="font-xl" slot="suffix" name="trash"></sl-icon>
           Ja, kann weg
         </sl-button>
@@ -303,7 +303,7 @@
     </sl-dialog>
   </div>
   <div v-else>
-    <header class="content-center mb-xxxl">
+    <header class="content-center mb-3xl">
       <Logo />
       <h1>Was zum ... ?</h1>
       <p>
@@ -569,8 +569,8 @@ export default {
   text-decoration: line-through;
 }
 .menu {
-  height: var(--sl-spacing-xxxx-large);
-  width: var(--sl-spacing-xxxx-large);
+  height: var(--sl-spacing-4x-large);
+  width: var(--sl-spacing-4x-large);
   display: flex;
   justify-content: center;
   align-items: center;

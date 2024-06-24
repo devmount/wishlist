@@ -34,17 +34,17 @@ This is a little web app with a Vue3 frontend and a Supabase backend that enable
 5. Install dependencies with [Yarn](https://yarnpkg.com/getting-started)
 
     ```bash
-    yarn
+    npm i
     ```
 
 6. Compile and hot-reload for development ...
 
     ```bash
-    yarn dev
+    npm run dev
     ```
 
 7. ... or compile and minify for production:
 
     ```bash
-    yarn build
+    npm run build
     ```

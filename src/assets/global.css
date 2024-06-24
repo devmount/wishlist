@@ -1,6 +1,5 @@
 :root {
   font-size: 16px;
-  --sl-spacing-larger: 1.5rem;
   --hide-duration: 1s;
 }
 body {
@@ -11,12 +10,12 @@ body {
   margin: 0;
 }
 h1 {
-  font-size: var(--sl-font-size-xxxx-large);
+  font-size: var(--sl-font-size-3x-large);
   font-weight: var(--sl-font-weight-light);
-  margin-bottom: var(--sl-spacing-xx-large);
+  margin-bottom: var(--sl-spacing-2x-large);
 }
 h2 {
-  font-size: var(--sl-font-size-xx-large);
+  font-size: var(--sl-font-size-2x-large);
   font-weight: var(--sl-font-weight-light);
 }
 h3 {
@@ -31,7 +30,7 @@ h3 {
 }
 @media (max-width: 960px) {
   h1 {
-    font-size: var(--sl-font-size-xx-large);
+    font-size: var(--sl-font-size-2x-large);
   }
 }
 a,
@@ -51,23 +50,23 @@ pre {
 }
 hr {
   border: none;
-  height: var(--sl-spacing-xx-small);
+  height: var(--sl-spacing-2x-small);
   width: 30%;
-  margin: -1.5rem auto var(--sl-spacing-xxx-large) auto;
+  margin: -1.5rem auto var(--sl-spacing-3x-large) auto;
   padding: 0;
   border-radius: var(--sl-border-radius-pill);
 }
 .m-none {
   margin: 0;
 }
-.mt-xxxs {
-  margin-top: var(--sl-spacing-xxx-small);
+.mt-3xs {
+  margin-top: var(--sl-spacing-3x-small);
 }
-.mt-xxs {
-  margin-top: var(--sl-spacing-xx-small);
+.mt-2xs {
+  margin-top: var(--sl-spacing-2x-small);
 }
-.mt-xxl {
-  margin-top: var(--sl-spacing-xx-large);
+.mt-2xl {
+  margin-top: var(--sl-spacing-2x-large);
 }
 .mr-xs {
   margin-right: var(--sl-spacing-x-small);
@@ -81,14 +80,14 @@ hr {
 .mr-auto {
   margin-right: auto;
 }
-.mb-xxs {
-  margin-bottom: var(--sl-spacing-xx-small);
+.mb-2xs {
+  margin-bottom: var(--sl-spacing-2x-small);
 }
 .mb-m {
   margin-bottom: var(--sl-spacing-medium);
 }
-.mb-xxxl {
-  margin-bottom: var(--sl-spacing-xxx-large);
+.mb-3xl {
+  margin-bottom: var(--sl-spacing-3x-large);
 }
 .ml-m {
   margin-left: var(--sl-spacing-medium);
@@ -144,11 +143,11 @@ hr {
 .font-xl {
   font-size: var(--sl-font-size-x-large);
 }
-.font-xxl {
-  font-size: var(--sl-font-size-xx-large);
+.font-2xl {
+  font-size: var(--sl-font-size-2x-large);
 }
-.font-xxxl {
-  font-size: var(--sl-font-size-xxx-large);
+.font-3xl {
+  font-size: var(--sl-font-size-3x-large);
 }
 .grow-1 {
   flex-grow: 1;
@@ -169,7 +168,7 @@ hr {
   width: 100%;
 }
 .height-lr {
-  height: var(--sl-spacing-larger);
+  height: var(--sl-spacing-x-large);
 }
 .text-overflow-ellipsis {
   display: inline-block;
