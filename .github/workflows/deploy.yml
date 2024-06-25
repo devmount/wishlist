@@ -21,9 +21,8 @@ jobs:
     - name: Build app using Yarn
       run: |
         printf "VITE_SB_KEY=${{ secrets.SB_KEY }}\nVITE_SB_URL=${{ secrets.SB_URL }}" >> .env
-        npm install -g yarn
-        yarn install
-        yarn build
+        npm install
+        npm run build
     - name: Push Build files to production
       uses: burnett01/rsync-deployments@5.2
       with:
