@@ -1,5 +1,5 @@
 <p align="center">
-<img src="https://user-images.githubusercontent.com/5441654/121005785-73fb5000-c790-11eb-82ea-ab8bd4b3d448.png" />
+<img src="https://user-images.githubusercontent.com/5441654/121005785-73fb5000-c790-11eb-82ea-ab8bd4b3d448.png" alt="logo" />
 </p>
 
 <h1 align="center">wishlist</h1>
