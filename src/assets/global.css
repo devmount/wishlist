@@ -56,7 +56,7 @@ hr {
   padding: 0;
   border-radius: var(--sl-border-radius-pill);
 }
-.m-none {
+.m-0 {
   margin: 0;
 }
 .mt-3xs {
@@ -192,4 +192,9 @@ sl-switch {
 }
 .c-pointer {
   cursor: pointer;
+}
+.truncate {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }

@@ -82,10 +82,10 @@
       >
         <!-- item title and flag -->
         <header slot="summary" class="d-flex align-items-center gap-m width-full">
-          <sl-icon v-if="i.state == 'purchased' && allowed" name="check-circle" class="font-xl"></sl-icon>
+          <sl-icon v-if="i.state == 'purchased' && allowed" name="check-circle" class="font-xl shrink-0"></sl-icon>
           <sl-icon v-else-if="i.state == 'reserved' && allowed" name="exclamation-circle" class="font-xl"></sl-icon>
           <sl-icon v-else name="circle" class="font-xl"></sl-icon>
-          <h3 class="m-none">{{ i.title }}</h3>
+          <h3 class="m-0" :title="i.title">{{ i.title }}</h3>
           <sl-badge v-if="i.state == 'reserved' && allowed" variant="neutral">RESERVIERT</sl-badge>
           <sl-badge v-if="i.state == 'purchased' && allowed" variant="primary">GEKAUFT</sl-badge>
           <div v-if="i.price" class="ml-auto mr-m text-mono">
@@ -102,7 +102,7 @@
               Letzte Aktivität <sl-relative-time :date="i.modified" locale="de"></sl-relative-time>
             </div>
           </div>
-          <div v-if="i.links.length > 0">
+          <div v-if="i.links?.length">
             Hier kann man das kaufen:
             <a class="d-flex align-items-center mt-2xs" v-for="l in i.links" :href="l" target="_blank">
               <sl-icon name="link-45deg" class="shrink-0 font-l mt-3xs mr-xs"></sl-icon>
@@ -560,16 +560,19 @@ export default {
 </script>
 
 <style>
-.item {
+.item::part(header) {
   border-top-left-radius: var(--sl-border-radius-medium);
 }
-.item[reserved=true] {
+.item h3 {
+  max-width: 55%;
+}
+.item[reserved=true]::part(header) {
   background: linear-gradient(135deg, var(--sl-color-gray-500) 0%, var(--sl-color-gray-500) 24px, transparent 24px);
 }
 .item[reserved=true] h3 {
   color: var(--sl-color-gray-400);
 }
-.item[purchased=true] {
+.item[purchased=true]::part(header) {
   background: linear-gradient(135deg, var(--sl-color-primary-500) 0%, var(--sl-color-primary-500) 24px, transparent 24px);
 }
 .item[purchased=true] h3 {
