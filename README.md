@@ -8,7 +8,7 @@
 <p align="center">
 <a href="https://github.com/devmount/wishlist/releases" target="_blank"><img src="https://img.shields.io/github/v/tag/devmount/wishlist.svg?label=wishlist&colorB=00abfb&style=flat-square" alt="release" /></a>
 <a href="https://github.com/devmount/wishlist/commits/main" target="_blank"><img src="https://img.shields.io/github/last-commit/devmount/wishlist?label=updated&color=00abfb&style=flat-square" alt="last commit" /></a>
-<a href="https://github.com/devmount/wishlist/actions?query=workflow%3ACodeQL" target="_blank"><img src="https://img.shields.io/github/actions/workflow/status/devmount/wishlist/CodeQL?label=CodeQL&logo=github&color=00abfb&style=flat-square" alt="CodeQL analysis" /></a>
+<a href="https://github.com/devmount/wishlist/actions?query=workflow%3ACodeQL" target="_blank"><img src="https://img.shields.io/github/actions/workflow/status/devmount/wishlist/codeql.yml?branch=main&label=CodeQL&logo=github&color=00abfb&style=flat-square" alt="CodeQL analysis" /></a>
 <a href="./LICENSE" target="_blank"><img src="https://img.shields.io/github/license/devmount/wishlist.svg?colorB=00abfb&style=flat-square" alt="license" /></a>
 <a href="./.github/CONTRIBUTING.md" target="_blank"><img src="https://img.shields.io/badge/contributions-welcome-00abfb.svg?style=flat-square" alt="contributions welcome" /></a>
 </p>
@@ -30,20 +30,21 @@ This is a little web app with a Vue3 frontend and a Supabase backend that enable
 
 2. Create a new Supabase project on [app.supabase.io](https://app.supabase.io/)
 3. Enter your new Supabase project, open the SQLeditor and run the content of `install.sql` provided in this repository
-4. Fill the `.env.example` file with your Supabase credentials and rename it to `.env`
-5. Install dependencies with NPM
+4. Enable realtime functionality for both tables
+5. Fill the `.env.example` file with your Supabase credentials and rename it to `.env`
+6. Install dependencies with NPM
 
     ```bash
     npm i
     ```
 
-6. Compile and hot-reload for development ...
+7. Compile and hot-reload for development ...
 
     ```bash
     npm run dev
     ```
 
-7. ... or compile and minify for production:
+8. ... or compile and minify for production:
 
     ```bash
     npm run build
