@@ -219,7 +219,7 @@
         </div>
         <sl-button type="submit" variant="primary" size="large">
             <sl-icon class="font-xl" slot="suffix" name="pencil"></sl-icon>
-            Wunschliste anpassen
+            Speichern
         </sl-button>
       </form>
       <h3 class="mt-2xl">Spoiler</h3>
@@ -326,7 +326,7 @@ export default {
   components: { Logo },
   setup () {
     const supabase = inject('supabase');
-    return { supabase }
+    return { supabase };
   },
   data: () => ({
     loading: true,
@@ -351,9 +351,12 @@ export default {
     }
   }),
   async created () {
-    // subscribe to all changes on the lists table and the items table to provide realtime experience
-    this.supabase.from('lists').on('*', async () => { await this.getList() }).subscribe()
-    this.supabase.from('items').on('*', async () => { await this.getItems() }).subscribe()
+    // Subscribe to all changes on the lists table and the items table to provide realtime experience
+    this.supabase.channel('room').on(
+      'postgres_changes',
+      { event: '*', schema: '*' },
+      async () => { await this.getList(); await this.getItems(); }
+    ).subscribe();
     // initially get all existing items
     await this.getList()
     await this.getItems()
@@ -364,6 +367,10 @@ export default {
     this.loading = false
     // set browser title
     document.title = this.admin ? 'wishlist - admin: ' + this.list?.title : 'wishlist - ' + this.list?.title
+  },
+  unmounted () {
+    // Unsubscribe from active channels
+    this.supabase.removeAllChannels();
   },
   methods: {
     // retrieve list object
@@ -382,7 +389,8 @@ export default {
         const { data, error} = await this.supabase
           .from('lists')
           .update(this.input.list)
-          .match({ id: this.list?.id })
+          .eq('id', this.list?.id )
+          .select()
         if (!error) this.list = data[0]
         else console.log(error)
         this.$refs.drawer.hide()
@@ -416,7 +424,7 @@ export default {
             else console.log(insertResult.error)
             break
           case 'UPDATE':
-            const updateResult = await this.supabase.from('items').update(i).match({ id: this.input.item.target })
+            const updateResult = await this.supabase.from('items').update(i).eq('id', this.input.item.target ).select()
             if (!updateResult.error) this.items[this.getItemPosition(i.id)] = i
             else console.log(updateResult.error)
             break
@@ -449,7 +457,7 @@ export default {
     // set item state to reserved or open and close dialog
     async toggleReserved (item) {
       const state = item.state == 'reserved' ? 'open' : 'reserved'
-      const { data, error } = await this.supabase.from('items').update({ state: state }).match({ id: item.id })
+      const { data, error } = await this.supabase.from('items').update({ state: state }).eq('id', item.id ).select();
       if (!error) this.items[this.getItemPosition(data[0].id)].state = state
       else console.log(error)
       this.$refs['dialog-reserve'].hide()
@@ -463,7 +471,7 @@ export default {
     // set item state to purchased or open
     async togglePurchased (item) {
       const state = item.state == 'purchased' ? 'open' : 'purchased'
-      const { data, error } = await this.supabase.from('items').update({ state: state }).match({ id: item.id })
+      const { data, error } = await this.supabase.from('items').update({ state: state }).eq('id', item.id ).select()
       if (!error) this.items[this.getItemPosition(data[0].id)].state = state
       else console.log(error)
       this.$refs['dialog-purchase'].hide()
@@ -545,7 +553,7 @@ export default {
       await this.getItems()
     },
     'list.spoiler': async function (newVal) {
-      await this.supabase.from('lists').update({ spoiler: newVal }).match({ id: this.list?.id })
+      await this.supabase.from('lists').update({ spoiler: newVal }).eq('id', this.list?.id )
     }
   }
 }
