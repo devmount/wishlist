@@ -55,24 +55,35 @@
       Diese Einträge sind nur auf diesem Gerät und in diesem Browser sichtbar, du kannst sie löschen, wenn du sie nicht mehr brauchst
       (die Wunschlisten selbst werden dadurch nicht gelöscht).
     </p>
-    <div v-if="localLists.length>0" class="d-flex gap-m flex-wrap">
-      <sl-card v-for="(l, i) in localLists" :key="i">
-        Erstellt <sl-relative-time :date="l.ts" locale="de"></sl-relative-time><br />
-        am <sl-format-date :date="l.ts" month="long" day="numeric" year="numeric" locale="de"></sl-format-date>
-        <div slot="footer" class="font-xl">
+    <div v-if="localLists.length>0" class="d-grid gap-m three-col">
+      <sl-card v-for="(l, i) in localLists" :key="i" :style="{ background: `linear-gradient(135deg, ${l.color} 0%, ${l.color} 24px, transparent 24px)` }">
+        <div class="truncate">{{ l.title }}</div>
+        <div class="font-xs">
+          Erstellt <sl-relative-time :date="l.created" lang="de"></sl-relative-time>
+          am <sl-format-date :date="l.created" month="long" day="numeric" year="numeric" lang="de"></sl-format-date>
+        </div>
+        <div slot="footer" class="font-xl d-flex justify-space-between">
           <sl-tooltip content="Eintrag löschen" placement="bottom">
-            <sl-button variant="danger" size="large" @click="removeLocalListEntry(i)">
+            <sl-button variant="danger" size="large" @click="removeLocalListEntry(i)" outline>
               <sl-icon name="trash"></sl-icon>
             </sl-button>
           </sl-tooltip>
-          <sl-button-group class="ml-m">
+          <sl-button-group>
             <sl-tooltip content="Geteilte Ansicht" placement="bottom">
-              <sl-button variant="default" size="large" @click="$router.push({ name: 'public', params: { public: l.pu }})">
+              <sl-button
+                variant="default"
+                size="large"
+                @click="$router.push({ name: 'public', params: { public: l.slug_public }})"
+              >
                 <sl-icon name="share"></sl-icon>
               </sl-button>
             </sl-tooltip>
             <sl-tooltip content="Liste bearbeiten" placement="bottom">
-              <sl-button variant="default" size="large" @click="$router.push({ name: 'private', params: { public: l.pu, private: l.pr }})">
+              <sl-button
+                variant="default"
+                size="large"
+                @click="$router.push({ name: 'private', params: { public: l.slug_public, private: l.slug_private }})"
+              >
                 <sl-icon name="pencil"></sl-icon>
               </sl-button>
             </sl-tooltip>

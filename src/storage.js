@@ -14,12 +14,21 @@ export const listIndex = (list) => {
 };
 
 /**
+ * True if list is already stored locally
+ */
+export const listExists = (list) => {
+  return listIndex(list) >= 0;
+};
+
+/**
  * Store a <list> in local storage with timestamp and slugs
  * Returns the list object if the entry was added otherweise null.
  */
 export const addToStorage = (list) => {
   const lists = getAllFromStorage();
-  if (listIndex(list) < 0) {
+  if (list && !listExists(list)) {
+    // Remove unwanted properties
+    delete list.id;
     // If that list doesn't exist yet, add and save it
     lists.push(list);
     localStorage.wishlists = JSON.stringify(lists)
@@ -46,6 +55,7 @@ export const removeFromStorage = (list) => {
 export default {
   getAllFromStorage,
   listIndex,
+  listExists,
   addToStorage,
   removeFromStorage,
 };

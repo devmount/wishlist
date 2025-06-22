@@ -98,8 +98,8 @@
           <div class="d-flex-column justify-space-between gap-m">
             {{ i.description }}
             <div class="font-xs text-gray">
-              Erstellt am <sl-format-date :date="i.created" month="long" day="numeric" year="numeric" locale="de"></sl-format-date><br>
-              Letzte Aktivität <sl-relative-time :date="i.modified" locale="de"></sl-relative-time>
+              Erstellt am <sl-format-date :date="i.created" month="long" day="numeric" year="numeric" lang="de"></sl-format-date><br>
+              Letzte Aktivität <sl-relative-time :date="i.modified" lang="de"></sl-relative-time>
             </div>
           </div>
           <div v-if="i.links?.length">
@@ -179,8 +179,8 @@
       </div>
     </section>
     <section class="content-center font-xs text-gray">
-      Diese Wunschliste wurde <sl-relative-time :date="list.created" locale="de"></sl-relative-time>
-      am <sl-format-date :date="list.created" month="long" day="numeric" year="numeric" locale="de"></sl-format-date> erstellt
+      Diese Wunschliste wurde <sl-relative-time :date="list.created" lang="de"></sl-relative-time>
+      am <sl-format-date :date="list.created" month="long" day="numeric" year="numeric" lang="de"></sl-format-date> erstellt
     </section>
     <!-- admin area trigger -->
     <div class="admin p-fixed-top-right">
@@ -317,6 +317,7 @@
 
 <script>
 import { inject } from 'vue';
+import { addToStorage } from "@/storage";
 
 // import partials
 import Logo from '@/views/partials/Logo.vue';
@@ -357,16 +358,23 @@ export default {
       { event: '*', schema: '*' },
       async () => { await this.getList(); await this.getItems(); }
     ).subscribe();
-    // initially get all existing items
-    await this.getList()
-    await this.getItems()
-    // init item and list input
-    this.resetItemInput()
-    this.resetListInput()
-    // finished loading
-    this.loading = false
-    // set browser title
-    document.title = this.admin ? 'wishlist - admin: ' + this.list?.title : 'wishlist - ' + this.list?.title
+
+    // Initially get all existing items
+    await this.getList();
+    await this.getItems();
+
+    // Init item and list input
+    this.resetItemInput();
+    this.resetListInput();
+
+    // Finished loading
+    this.loading = false;
+
+    // Set browser title
+    document.title = this.admin ? 'Wishlist - admin: ' + this.list?.title : 'Wishlist - ' + this.list?.title;
+
+    // Check for existing local storage entry and add if it's not there
+    addToStorage(this.list);
   },
   unmounted () {
     // Unsubscribe from active channels
