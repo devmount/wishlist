@@ -351,7 +351,7 @@ export default {
       action: '' // 'reserve' | 'purchase' | 'delete
     }
   }),
-  async created () {
+  async mounted () {
     // Initially get all existing items
     await this.getList();
     await this.getItems();
@@ -374,7 +374,9 @@ export default {
     document.title = this.admin ? 'Wishlist - admin: ' + this.list?.title : 'Wishlist - ' + this.list?.title;
 
     // Check for existing local storage entry and add if it's not there
-    addToStorage(this.list);
+    if (this.admin) {
+      addToStorage(this.list);
+    }
   },
   unmounted () {
     // Unsubscribe from active channels
