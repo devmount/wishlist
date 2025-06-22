@@ -153,13 +153,24 @@ export default {
     },
     // get random slug string
     generateSlug (length) {
-      const chars = '0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ'
-      let result = ''
+      const chars = '0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ';
+      let result = '';
       for (let i = length; i>0; --i) {
         result += chars[Math.round(Math.random()*(chars.length-1))];
       }
-      return result
+      return result;
     }
   }
 }
 </script>
+
+<style>
+sl-card {
+  border-radius: var(--sl-border-radius-medium);
+
+  &::part(base) {
+    background-color: transparent;
+    overflow: hidden;
+  }
+}
+</style>

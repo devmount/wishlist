@@ -352,16 +352,16 @@ export default {
     }
   }),
   async created () {
+    // Initially get all existing items
+    await this.getList();
+    await this.getItems();
+
     // Subscribe to all changes on the lists table and the items table to provide realtime experience
     this.supabase.channel('room').on(
       'postgres_changes',
       { event: '*', schema: '*' },
       async () => { await this.getList(); await this.getItems(); }
     ).subscribe();
-
-    // Initially get all existing items
-    await this.getList();
-    await this.getItems();
 
     // Init item and list input
     this.resetItemInput();
