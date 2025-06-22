@@ -55,24 +55,35 @@
       Diese Einträge sind nur auf diesem Gerät und in diesem Browser sichtbar, du kannst sie löschen, wenn du sie nicht mehr brauchst
       (die Wunschlisten selbst werden dadurch nicht gelöscht).
     </p>
-    <div v-if="localLists.length>0" class="d-flex gap-m flex-wrap">
-      <sl-card v-for="(l, i) in localLists" :key="i">
-        Erstellt <sl-relative-time :date="l.ts" locale="de"></sl-relative-time><br />
-        am <sl-format-date :date="l.ts" month="long" day="numeric" year="numeric" locale="de"></sl-format-date>
-        <div slot="footer" class="font-xl">
+    <div v-if="localLists.length>0" class="d-grid gap-m three-col">
+      <sl-card v-for="(l, i) in localLists" :key="i" :style="{ background: `linear-gradient(135deg, ${l.color} 0%, ${l.color} 24px, transparent 24px)` }">
+        <div class="truncate">{{ l.title }}</div>
+        <div class="font-xs">
+          Erstellt <sl-relative-time :date="l.created" lang="de"></sl-relative-time>
+          am <sl-format-date :date="l.created" month="long" day="numeric" year="numeric" lang="de"></sl-format-date>
+        </div>
+        <div slot="footer" class="font-xl d-flex justify-space-between">
           <sl-tooltip content="Eintrag löschen" placement="bottom">
-            <sl-button variant="danger" size="large" @click="removeLocalListEntry(i)">
+            <sl-button variant="danger" size="large" @click="removeLocalListEntry(i)" outline>
               <sl-icon name="trash"></sl-icon>
             </sl-button>
           </sl-tooltip>
-          <sl-button-group class="ml-m">
+          <sl-button-group>
             <sl-tooltip content="Geteilte Ansicht" placement="bottom">
-              <sl-button variant="default" size="large" @click="$router.push({ name: 'public', params: { public: l.pu }})">
+              <sl-button
+                variant="default"
+                size="large"
+                @click="$router.push({ name: 'public', params: { public: l.slug_public }})"
+              >
                 <sl-icon name="share"></sl-icon>
               </sl-button>
             </sl-tooltip>
             <sl-tooltip content="Liste bearbeiten" placement="bottom">
-              <sl-button variant="default" size="large" @click="$router.push({ name: 'private', params: { public: l.pu, private: l.pr }})">
+              <sl-button
+                variant="default"
+                size="large"
+                @click="$router.push({ name: 'private', params: { public: l.slug_public, private: l.slug_private }})"
+              >
                 <sl-icon name="pencil"></sl-icon>
               </sl-button>
             </sl-tooltip>
@@ -88,6 +99,7 @@
 
 <script>
 import { inject } from 'vue';
+import { getAllFromStorage, addToStorage, removeFromStorage } from "@/storage";
 
 // import partials
 import Logo from '@/views/partials/Logo.vue';
@@ -108,13 +120,9 @@ export default {
     localLists: []
   }),
   created () {
-    this.getLocalListEntries();
+    this.localLists = getAllFromStorage();
   },
   methods: {
-    // get all existing lists from local storage
-    getLocalListEntries () {
-      this.localLists = JSON.parse(localStorage.wishlists || null) || []
-    },
     // store new list in database
     async addList () {
       if (this.input.title) {
@@ -126,39 +134,43 @@ export default {
           'description': this.input.description,
           'slug_public': slugPublic,
           'slug_private': slugPrivate,
-        })
+        }).select()
         if (!error) {
-          this.storeLocalListEntry(data[0])
-          let self = this
+          if (obj = addToStorage(data[0])) {
+            this.localLists.push(obj);
+          }
           // workaround for race condition in vue router
-          setTimeout(function() {
-            self.$router.push({ name: 'private', params: { public: slugPublic, private: slugPrivate }})
+          setTimeout(() => {
+            this.$router.push({ name: 'private', params: { public: slugPublic, private: slugPrivate }})
           }, 100);
         }
       }
     },
-    // store added <list> in local storage
-    storeLocalListEntry (list) {
-      let obj = {
-        ts: list.created,
-        pu: list.slug_public,
-        pr: list.slug_private,
-      }
-      this.localLists.push(obj)
-      localStorage.wishlists = JSON.stringify(this.localLists)
-    },
     // remove list stored at <index> from local list and local storage
     removeLocalListEntry (index) {
+      removeFromStorage(this.localLists[index])
       this.localLists.splice(index, 1)
-      localStorage.wishlists = JSON.stringify(this.localLists)
     },
     // get random slug string
     generateSlug (length) {
-      const chars = '0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ'
-      let result = ''
-      for (let i = length; i>0; --i) result += chars[Math.round(Math.random()*(chars.length-1))]
-      return result
+      const chars = '0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ';
+      let result = '';
+      for (let i = length; i>0; --i) {
+        result += chars[Math.round(Math.random()*(chars.length-1))];
+      }
+      return result;
     }
   }
 }
 </script>
+
+<style>
+sl-card {
+  border-radius: var(--sl-border-radius-medium);
+
+  &::part(base) {
+    background-color: transparent;
+    overflow: hidden;
+  }
+}
+</style>

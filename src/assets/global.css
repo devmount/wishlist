@@ -129,6 +129,9 @@ hr {
 .two-col {
   grid-template-columns: 1fr 50%;
 }
+.three-col {
+  grid-template-columns: repeat(3, 1fr);
+}
 .p-fixed-top-right {
   position: fixed;
   top: var(--sl-spacing-x-large);
