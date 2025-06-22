@@ -419,7 +419,7 @@ export default {
         // check if new or edited item
         switch (this.input.item.mode) {
           case 'INSERT':
-            const insertResult = await this.supabase.from('items').insert(i)
+            const insertResult = await this.supabase.from('items').insert(i).select()
             if (!insertResult.error) this.items.unshift(i)
             else console.log(insertResult.error)
             break

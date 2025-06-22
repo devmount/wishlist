@@ -88,6 +88,7 @@
 
 <script>
 import { inject } from 'vue';
+import { getAllFromStorage, addToStorage, removeFromStorage } from "@/storage";
 
 // import partials
 import Logo from '@/views/partials/Logo.vue';
@@ -108,13 +109,9 @@ export default {
     localLists: []
   }),
   created () {
-    this.getLocalListEntries();
+    this.localLists = getAllFromStorage();
   },
   methods: {
-    // get all existing lists from local storage
-    getLocalListEntries () {
-      this.localLists = JSON.parse(localStorage.wishlists || null) || []
-    },
     // store new list in database
     async addList () {
       if (this.input.title) {
@@ -126,37 +123,30 @@ export default {
           'description': this.input.description,
           'slug_public': slugPublic,
           'slug_private': slugPrivate,
-        })
+        }).select()
         if (!error) {
-          this.storeLocalListEntry(data[0])
-          let self = this
+          if (obj = addToStorage(data[0])) {
+            this.localLists.push(obj);
+          }
           // workaround for race condition in vue router
-          setTimeout(function() {
-            self.$router.push({ name: 'private', params: { public: slugPublic, private: slugPrivate }})
+          setTimeout(() => {
+            this.$router.push({ name: 'private', params: { public: slugPublic, private: slugPrivate }})
           }, 100);
         }
       }
     },
-    // store added <list> in local storage
-    storeLocalListEntry (list) {
-      let obj = {
-        ts: list.created,
-        pu: list.slug_public,
-        pr: list.slug_private,
-      }
-      this.localLists.push(obj)
-      localStorage.wishlists = JSON.stringify(this.localLists)
-    },
     // remove list stored at <index> from local list and local storage
     removeLocalListEntry (index) {
+      removeFromStorage(this.localLists[index])
       this.localLists.splice(index, 1)
-      localStorage.wishlists = JSON.stringify(this.localLists)
     },
     // get random slug string
     generateSlug (length) {
       const chars = '0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ'
       let result = ''
-      for (let i = length; i>0; --i) result += chars[Math.round(Math.random()*(chars.length-1))]
+      for (let i = length; i>0; --i) {
+        result += chars[Math.round(Math.random()*(chars.length-1))];
+      }
       return result
     }
   }
