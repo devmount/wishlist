@@ -189,42 +189,59 @@
       </div>
     </div>
     <!-- admin area for list -->
-    <sl-drawer ref="drawer" label="Administration">
-      <h3>Bearbeite deine Wunschliste</h3>
-      <form @submit.prevent="syncList()">
-        <div v-if="list && list.id" class="d-flex-column gap-m mb-m">
-          <div class="d-flex gap-m">
-            <sl-input
-              class="check-input grow-1"
-              ref="input-list-title"
-              type="text"
-              :value="input.list.title"
-              @input="input.list.title = $event.target.value"
-              placeholder="Titel der Liste"
-              required
-            ></sl-input>
-            <sl-color-picker
-              format="hex"
-              :value="input.list.color"
-              @sl-change="input.list.color = $event.target.value"
-            ></sl-color-picker>
+    <sl-drawer ref="drawer" label="Administration" class="admin-drawer">
+      <div>
+        <h3>Bearbeite deine Wunschliste</h3>
+        <form @submit.prevent="syncList()">
+          <div v-if="list && list.id" class="d-flex-column gap-m mb-m">
+            <div class="d-flex gap-m">
+              <sl-input
+                class="check-input grow-1"
+                ref="input-list-title"
+                type="text"
+                :value="input.list.title"
+                @input="input.list.title = $event.target.value"
+                placeholder="Titel der Liste"
+                required
+              ></sl-input>
+              <sl-color-picker
+                format="hex"
+                :value="input.list.color"
+                @sl-change="input.list.color = $event.target.value"
+              ></sl-color-picker>
+            </div>
+            <sl-textarea
+              :value="input.list.description"
+              @input="input.list.description = $event.target.value"
+              placeholder="Beschreibung (optional)"
+              rows="3"
+              resize="auto"
+            ></sl-textarea>
           </div>
-          <sl-textarea
-            :value="input.list.description"
-            @input="input.list.description = $event.target.value"
-            placeholder="Beschreibung (optional)"
-            rows="3"
-            resize="auto"
-          ></sl-textarea>
-        </div>
-        <sl-button type="submit" variant="primary" size="large">
-            <sl-icon class="font-xl" slot="suffix" name="pencil"></sl-icon>
-            Speichern
-        </sl-button>
-      </form>
-      <h3 class="mt-2xl">Spoiler</h3>
-      <p>Wenn aktiviert, werden alle Reservierungen und Käufe auch in der Verwaltungsansicht der Wunschliste (geheimer Link) angezeigt.</p>
-      <sl-switch @sl-change="list.spoiler = !list.spoiler" v-model="list.spoiler"></sl-switch>
+          <sl-button type="submit" variant="primary" size="large">
+              <sl-icon class="font-xl" slot="suffix" name="pencil"></sl-icon>
+              Speichern
+          </sl-button>
+        </form>
+      </div>
+      <div>
+        <h3>Spoiler</h3>
+        <p>Wenn aktiviert, werden alle Reservierungen und Käufe auch in der Verwaltungsansicht der Wunschliste (geheimer Link) angezeigt.</p>
+        <sl-switch @sl-change="list.spoiler = !list.spoiler" v-model="list.spoiler"></sl-switch>
+      </div>
+      <div class="danger">
+        <h3>Diese Liste kann weg</h3>
+        <p>Hier kann die komplette Wunschliste gelöscht werden. <strong>Das kann nicht rückgängig gemacht werden!</strong> Bist du sicher, dass du das willst?</p>
+        <form @submit.prevent="deleteList()" class="d-flex-column align-items-start gap-m">
+          <sl-checkbox @sl-change="confirmListDeletion = $event.target.checked">
+            Ja, ich bin mir sicher
+          </sl-checkbox>
+          <sl-button type="submit" variant="danger" size="large" :disabled="!confirmListDeletion">
+            <sl-icon class="font-xl" slot="suffix" name="trash"></sl-icon>
+            Löschen
+          </sl-button>
+        </form>
+      </div>
     </sl-drawer>
     <!-- dialog: item state handling reservation -->
     <sl-dialog ref="dialog-reserve">
@@ -317,7 +334,7 @@
 
 <script>
 import { inject } from 'vue';
-import { addToStorage } from "@/storage";
+import { addToStorage, removeFromStorage } from "@/storage";
 
 // import partials
 import Logo from '@/views/partials/Logo.vue';
@@ -349,9 +366,10 @@ export default {
     dialog: {
       item: null,
       action: '' // 'reserve' | 'purchase' | 'delete
-    }
+    },
+    confirmListDeletion: false,
   }),
-  async mounted () {
+  async created () {
     // Initially get all existing items
     await this.getList();
     await this.getItems();
@@ -516,6 +534,16 @@ export default {
     closeOtherItems (index) {
       [...this.$refs.wishlist.querySelectorAll('sl-details')].map((item, position) => (item.open = position == index))
     },
+    // delete existing item
+    async deleteList () {
+      const deleteResult = await this.supabase.from('lists').delete().match({ id: this.list?.id })
+      if (!deleteResult.error) {
+        removeFromStorage(this.list);
+        this.$router.push({ name: 'start' });
+      } else {
+        console.error(deleteResult.error);
+      }
+    },
   },
   computed: {
     // initial item object
@@ -589,6 +617,7 @@ export default {
   color: var(--sl-color-gray-400);
   text-decoration: line-through;
 }
+
 .menu {
   height: var(--sl-spacing-4x-large);
   width: var(--sl-spacing-4x-large);
@@ -600,5 +629,11 @@ export default {
 }
 .menu:hover {
   color: var(--sl-color-primary-500);
+}
+
+.admin-drawer::part(body) {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sl-spacing-2x-large);
 }
 </style>

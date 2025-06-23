@@ -114,6 +114,9 @@ hr {
 .flex-wrap {
   flex-wrap: wrap;
 }
+.align-items-start {
+  align-items: start;
+}
 .align-items-center {
   align-items: center;
 }
@@ -195,9 +198,4 @@ sl-switch {
 }
 .c-pointer {
   cursor: pointer;
-}
-.truncate {
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
 }
