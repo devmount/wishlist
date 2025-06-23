@@ -57,7 +57,7 @@
     </p>
     <div v-if="localLists.length>0" class="d-grid gap-m three-col">
       <sl-card v-for="(l, i) in localLists" :key="i" :style="{ background: `linear-gradient(135deg, ${l.color} 0%, ${l.color} 24px, transparent 24px)` }">
-        <div class="truncate">{{ l.title }}</div>
+        <div class="text-overflow-ellipsis">{{ l.title }}</div>
         <div class="font-xs">
           Erstellt <sl-relative-time :date="l.created" lang="de"></sl-relative-time>
           am <sl-format-date :date="l.created" month="long" day="numeric" year="numeric" lang="de"></sl-format-date>
@@ -120,7 +120,11 @@ export default {
     localLists: []
   }),
   created () {
+    // Init list overview from local storage
     this.localLists = getAllFromStorage();
+
+    // Set browser title
+    document.title = 'Wishlist';
   },
   methods: {
     // store new list in database
@@ -136,7 +140,8 @@ export default {
           'slug_private': slugPrivate,
         }).select()
         if (!error) {
-          if (obj = addToStorage(data[0])) {
+          const obj = addToStorage(data[0]);
+          if (obj) {
             this.localLists.push(obj);
           }
           // workaround for race condition in vue router
