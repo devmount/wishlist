@@ -49,4 +49,3 @@ COMMENT ON COLUMN items.modified IS 'Timestamp of list item modification';
 CREATE EXTENSION IF NOT EXISTS moddatetime SCHEMA extensions;
 CREATE TRIGGER handle_updated_at BEFORE UPDATE ON items 
 	FOR EACH ROW EXECUTE PROCEDURE moddatetime (modified);
-items_list_fkey

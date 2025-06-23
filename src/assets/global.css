@@ -68,9 +68,6 @@ hr {
 .mt-2xl {
   margin-top: var(--sl-spacing-2x-large);
 }
-.mt-auto {
-  margin-top: auto;
-}
 .mr-xs {
   margin-right: var(--sl-spacing-x-small);
 }
@@ -178,9 +175,6 @@ hr {
 }
 .height-lr {
   height: var(--sl-spacing-x-large);
-}
-.height-full {
-  height: 100%;
 }
 .text-overflow-ellipsis {
   display: inline-block;
