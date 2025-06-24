@@ -7,7 +7,7 @@
       </div>
     </header>
   </div>
-  <div v-else-if="list && list.id">
+  <div v-else-if="list">
     <header class="content-center mb-3xl">
       <Logo @click="$router.push({ name: 'start' })" :style="{ color: accent }" class="c-pointer" />
       <h1>{{ list.title }}</h1>
@@ -319,7 +319,7 @@
       </div>
     </sl-dialog>
   </div>
-  <div v-else>
+  <div v-if="!loading && !list">
     <header class="content-center mb-3xl">
       <Logo />
       <h1>Was zum ... ?</h1>
@@ -371,90 +371,94 @@ export default {
   }),
   async created () {
     // Initially get all existing items
-    await this.getList();
-    await this.getItems();
+    await this.getData();
 
     // Subscribe to all changes on the lists table and the items table to provide realtime experience
     this.supabase.channel('room').on(
       'postgres_changes',
       { event: '*', schema: '*' },
-      async () => { await this.getList(); await this.getItems(); }
+      async () => { await this.getData(); }
     ).subscribe();
 
     // Init item and list input
     this.resetItemInput();
     this.resetListInput();
-
-    // Finished loading
-    this.loading = false;
-
+    
     // Set browser title
-    document.title = this.admin ? 'Wishlist - admin: ' + this.list?.title : 'Wishlist - ' + this.list?.title;
+    document.title = this.admin ? 'Wishlist - Admin: ' + this.list?.title : 'Wishlist - ' + this.list?.title;
 
     // Check for existing local storage entry and add if it's not there
     if (this.admin) {
       addToStorage(this.list);
     }
+
+    // Finished loading
+    this.loading = false;
   },
   unmounted () {
     // Unsubscribe from active channels
     this.supabase.removeAllChannels();
   },
   methods: {
-    // retrieve list object
-    async getList () {
-      const { data: lists, error } = await this.supabase.from('lists').select();
+    // Retrieve requested data
+    async getData () {
+      // Query list by route
+      const { data, error } = await this.supabase.from('lists').select().eq('slug_public', this.$route.params.public);
       if (!error) {
-        const requestedList = lists.find(l => l.slug_public == this.$route.params.public)
-        this.list = requestedList ? requestedList : null
+        this.list = data[0] ?? null;
       } else {
-        console.log(error)
+        console.error(error);
+      }
+      
+      // Query corresponding list items
+      if (this.list?.id) {
+        const { data: items, error: fail } = await this.supabase.from('items').select().eq('list', this.list.id)
+        if (!fail) {
+          this.items = items.sort((a,b) => a.created < b.created);
+        } else {
+          console.error(fail);
+        }
       }
     },
     // edit list
     async syncList () {
       if (this.input.list.title) {
-        const { data, error} = await this.supabase
+        const { data, error } = await this.supabase
           .from('lists')
           .update(this.input.list)
           .eq('id', this.list?.id )
-          .select()
-        if (!error) this.list = data[0]
-        else console.log(error)
-        this.$refs.drawer.hide()
+          .select();
+        if (!error) {
+          this.list = data[0];
+        } else {
+          console.error(error);
+        }
+        this.$refs.drawer.hide();
       }
     },
     // reset list form
     resetListInput () {
-      this.input.list.title = this.list?.title
-      this.input.list.color = this.list?.color
-      this.input.list.description = this.list?.description
-    },
-    // retrieve list of item objects
-    async getItems () {
-      if (this.list?.id) {
-        const { data: items, error } = await this.supabase.from('items').select().filter('list', 'eq', this.list.id)
-        if (!error) this.items = items.sort((a,b) => a.created < b.created)
-        else console.log(error)
-      }
+      this.input.list.title = this.list?.title;
+      this.input.list.color = this.list?.color;
+      this.input.list.description = this.list?.description;
     },
     // store new or edit existing item
     async syncItem () {
       if (this.input.item.data.title) {
         // if valid input: get and preprocess item data
-        let i = JSON.parse(JSON.stringify(this.input.item.data))
+        let i = JSON.parse(JSON.stringify(this.input.item.data));
         i.links = i.links ? i.links.split('\n').map(l => l.trim()) : [];
         // check if new or edited item
         switch (this.input.item.mode) {
           case 'INSERT':
             const insertResult = await this.supabase.from('items').insert(i).select()
             if (!insertResult.error) this.items.unshift(i)
-            else console.log(insertResult.error)
+            else console.error(insertResult.error)
             break
           case 'UPDATE':
-            const updateResult = await this.supabase.from('items').update(i).eq('id', this.input.item.target ).select()
+            const updateResult = await this.supabase.from('items').update(i).eq('id', this.input.item.target).select()
             if (!updateResult.error) this.items[this.getItemPosition(i.id)] = i
-            else console.log(updateResult.error)
+            else console.error(updateResult.error)
             break
           default: break
         }
@@ -485,9 +489,9 @@ export default {
     // set item state to reserved or open and close dialog
     async toggleReserved (item) {
       const state = item.state == 'reserved' ? 'open' : 'reserved'
-      const { data, error } = await this.supabase.from('items').update({ state: state }).eq('id', item.id ).select();
+      const { data, error } = await this.supabase.from('items').update({ state: state }).eq('id', item.id).select();
       if (!error) this.items[this.getItemPosition(data[0].id)].state = state
-      else console.log(error)
+      else console.error(error)
       this.$refs['dialog-reserve'].hide()
     },
     // open dialog for purchase confirmation
@@ -499,9 +503,9 @@ export default {
     // set item state to purchased or open
     async togglePurchased (item) {
       const state = item.state == 'purchased' ? 'open' : 'purchased'
-      const { data, error } = await this.supabase.from('items').update({ state: state }).eq('id', item.id ).select()
+      const { data, error } = await this.supabase.from('items').update({ state: state }).eq('id', item.id).select()
       if (!error) this.items[this.getItemPosition(data[0].id)].state = state
-      else console.log(error)
+      else console.error(error)
       this.$refs['dialog-purchase'].hide()
     },
     // open dialog for item removal confirmation
@@ -514,7 +518,7 @@ export default {
     async deleteItem (item) {
       const deleteResult = await this.supabase.from('items').delete().match({ id: item.id })
       if (!deleteResult.error) this.items.slice(this.getItemPosition(item.id), 1)
-      else console.log(error)
+      else console.error(error)
       this.$refs['dialog-delete'].hide()
     },
     // find current position of list item with given <id>
@@ -536,7 +540,7 @@ export default {
     },
     // delete existing item
     async deleteList () {
-      const deleteResult = await this.supabase.from('lists').delete().match({ id: this.list?.id })
+      const deleteResult = await this.supabase.from('lists').delete().eq('id', this.list?.id)
       if (!deleteResult.error) {
         removeFromStorage(this.list);
         this.$router.push({ name: 'start' });
@@ -582,16 +586,12 @@ export default {
     },
     // prived accent color once list color is loaded
     accent () {
-      return this.list?.color ? this.list.color : '#000000'
+      return this.list?.color ?? '#000000'
     }
   },
   watch: {
-    async $route (to, from) {
-      await this.getList()
-      await this.getItems()
-    },
     'list.spoiler': async function (newVal) {
-      await this.supabase.from('lists').update({ spoiler: newVal }).eq('id', this.list?.id )
+      await this.supabase.from('lists').update({ spoiler: newVal }).eq('id', this.list?.id).select()
     }
   }
 }

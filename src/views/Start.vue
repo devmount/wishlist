@@ -73,7 +73,7 @@
               <sl-button
                 variant="default"
                 size="large"
-                @click="$router.push({ name: 'public', params: { public: l.slug_public }})"
+                @click="$router.push({ name: 'list', params: { public: l.slug_public }})"
               >
                 <sl-icon name="share"></sl-icon>
               </sl-button>
@@ -82,7 +82,7 @@
               <sl-button
                 variant="default"
                 size="large"
-                @click="$router.push({ name: 'private', params: { public: l.slug_public, private: l.slug_private }})"
+                @click="$router.push({ name: 'list', params: { public: l.slug_public, private: l.slug_private }})"
               >
                 <sl-icon name="pencil"></sl-icon>
               </sl-button>
@@ -146,7 +146,7 @@ export default {
           }
           // workaround for race condition in vue router
           setTimeout(() => {
-            this.$router.push({ name: 'private', params: { public: slugPublic, private: slugPrivate }})
+            this.$router.push({ name: 'list', params: { public: slugPublic, private: slugPrivate }})
           }, 100);
         }
       }
