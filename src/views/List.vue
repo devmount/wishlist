@@ -386,7 +386,7 @@ export default {
     
     // Set browser title
     document.title = this.admin ? 'Wishlist - Admin: ' + this.list?.title : 'Wishlist - ' + this.list?.title;
-    
+
     // Check for existing local storage entry and add if it's not there
     if (this.admin) {
       addToStorage(this.list);
