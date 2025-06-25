@@ -588,6 +588,7 @@ export default {
     nextWeight () {
       return Math.max(...this.items.map(i => i.weight)) + 1;
     },
+    // Extract the hostname from a given url
     getBaseUrl(url) {
       const obj = new URL(url);
       return obj.hostname;
