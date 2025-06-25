@@ -72,75 +72,88 @@
       </form>
     </section>
     <section ref="wishlist" class="mb-3xl">
-      <sl-details
-        class="item mb-2xs"
-        v-for="(i, n) in items"
-        :key="i.id"
-        :reserved="i.state == 'reserved' && allowed"
-        :purchased="i.state == 'purchased' && allowed"
-        @sl-show="closeOtherItems(n)"
+      <Sortable
+        :list="items"
+        item-key="id"
+        :options="{ handle: '.icon-handle' }"
+        @end="saveOrder"
       >
-        <!-- item title and flag -->
-        <header slot="summary" class="d-flex align-items-center gap-m width-full">
-          <sl-icon v-if="i.state == 'purchased' && allowed" name="check-circle" class="font-xl shrink-0"></sl-icon>
-          <sl-icon v-else-if="i.state == 'reserved' && allowed" name="exclamation-circle" class="font-xl"></sl-icon>
-          <sl-icon v-else name="circle" class="font-xl"></sl-icon>
-          <h3 class="m-0" :title="i.title">{{ i.title }}</h3>
-          <sl-badge v-if="i.state == 'reserved' && allowed" variant="neutral">RESERVIERT</sl-badge>
-          <sl-badge v-if="i.state == 'purchased' && allowed" variant="primary">GEKAUFT</sl-badge>
-          <div v-if="i.price" class="ml-auto mr-m text-mono">
-            <sl-icon name="tag" class="content-middle"></sl-icon>
-            {{ i.price }}
+        <template #item="{ element, index }">
+          <div class="draggable d-flex align-items-center">
+            <sl-icon
+              v-if="admin"
+              name="chevron-bar-expand"
+              class="icon-handle c-pointer p-s pl-xs font-xl shrink-0"
+            ></sl-icon>
+            <sl-details
+              class="item mb-2xs width-full shrink-1"
+              :reserved="element.state == 'reserved' && allowed"
+              :purchased="element.state == 'purchased' && allowed"
+              @sl-show="closeOtherItems(index)"
+            >
+              <!-- item title and flag -->
+              <header slot="summary" class="d-flex align-items-center gap-m width-full">
+                <sl-icon v-if="element.state == 'purchased' && allowed" name="check-circle" class="font-xl shrink-0"></sl-icon>
+                <sl-icon v-else-if="element.state == 'reserved' && allowed" name="exclamation-circle" class="font-xl"></sl-icon>
+                <sl-icon v-else name="circle" class="font-xl"></sl-icon>
+                <h3 class="m-0" :title="element.title">{{ element.title }}</h3>
+                <sl-badge v-if="element.state == 'reserved' && allowed" variant="neutral">RESERVIERT</sl-badge>
+                <sl-badge v-if="element.state == 'purchased' && allowed" variant="primary">GEKAUFT</sl-badge>
+                <div v-if="element.price" class="ml-auto mr-m text-mono">
+                  <sl-icon name="tag" class="content-middle"></sl-icon>
+                  {{ element.price }}
+                </div>
+              </header>
+              <!-- item information -->
+              <main class="d-flex-column gap-m mb-m">
+                <div v-if="element.description">{{ element.description }}</div>
+                <div v-if="element.links?.length">
+                  <div>Hier kann man das kaufen:</div>
+                  <a v-for="(l, i) in element.links" :key="l" class="d-flex align-items-center" :href="l" target="_blank">
+                    <sl-icon name="link-45deg" class="shrink-0 font-l mt-3xs mr-xs"></sl-icon>
+                    <span class="text-overflow-ellipsis">{{ getBaseUrl(l) }}</span>
+                  </a>
+                </div>
+                <div v-else>
+                  Für diesen Wunsch sind keine Linkvorschläge hinterlegt.
+                </div>
+                <div class="font-xs text-gray">
+                  Erstellt am <sl-format-date :date="element.created" month="long" day="numeric" year="numeric" lang="de"></sl-format-date>
+                  &middot;
+                  Letzte Aktivität <sl-relative-time :date="element.modified" lang="de"></sl-relative-time>
+                </div>
+              </main>
+              <!-- flag and manage item -->
+              <footer class="d-flex justify-end flex-wrap gap-m">
+                <sl-button v-if="admin" variant="danger" size="large" @click="confirmRemoval(element)">
+                  <sl-icon name="trash"></sl-icon>
+                </sl-button>
+                <sl-button v-if="admin" class="mr-auto" variant="primary" size="large" @click="editItem(element)">
+                  <sl-icon name="pencil"></sl-icon>
+                </sl-button>
+                <sl-button-group>
+                  <sl-button v-if="element.state != 'reserved'" variant="neutral" size="large" @click="confirmReserved(element)">
+                    <sl-icon class="font-xl" slot="suffix" name="patch-exclamation"></sl-icon>
+                    Reserviere ich
+                  </sl-button>
+                  <sl-button v-else variant="neutral" size="large" @click="confirmReserved(element)">
+                    <sl-icon class="font-xl" slot="suffix" name="patch-minus"></sl-icon>
+                    Doch nicht reserviert
+                  </sl-button>
+                  <sl-button v-if="element.state != 'purchased'" variant="primary" size="large" @click="confirmPurchased(element)">
+                      <sl-icon class="font-xl" slot="suffix" name="cart-check"></sl-icon>
+                      Habe ich gekauft
+                  </sl-button>
+                  <sl-button v-else variant="primary" size="large" @click="confirmPurchased(element)">
+                    <sl-icon class="font-xl" slot="suffix" name="cart-dash"></sl-icon>
+                    Doch nicht gekauft
+                  </sl-button>
+                </sl-button-group>
+              </footer>
+            </sl-details>
           </div>
-        </header>
-        <!-- item information -->
-        <main class="d-grid gap-m two-col mb-m">
-          <div class="d-flex-column justify-space-between gap-m">
-            {{ i.description }}
-            <div class="font-xs text-gray">
-              Erstellt am <sl-format-date :date="i.created" month="long" day="numeric" year="numeric" lang="de"></sl-format-date><br>
-              Letzte Aktivität <sl-relative-time :date="i.modified" lang="de"></sl-relative-time>
-            </div>
-          </div>
-          <div v-if="i.links?.length">
-            Hier kann man das kaufen:
-            <a class="d-flex align-items-center mt-2xs" v-for="l in i.links" :href="l" target="_blank">
-              <sl-icon name="link-45deg" class="shrink-0 font-l mt-3xs mr-xs"></sl-icon>
-              <span class="text-overflow-ellipsis">{{ l }}</span>
-            </a>
-          </div>
-          <div v-else>
-            Für diesen Wunsch sind keine Links hinterlegt.
-          </div>
-        </main>
-        <!-- flag and manage item -->
-        <footer class="d-flex justify-end flex-wrap gap-m">
-          <sl-button v-if="admin" variant="danger" size="large" @click="confirmRemoval(i)">
-            <sl-icon name="trash"></sl-icon>
-          </sl-button>
-          <sl-button v-if="admin" class="mr-auto" variant="primary" size="large" @click="editItem(i)">
-            <sl-icon name="pencil"></sl-icon>
-          </sl-button>
-          <sl-button-group>
-            <sl-button v-if="i.state != 'reserved'" variant="neutral" size="large" @click="confirmReserved(i)">
-              <sl-icon class="font-xl" slot="suffix" name="patch-exclamation"></sl-icon>
-              Reserviere ich
-            </sl-button>
-            <sl-button v-else variant="neutral" size="large" @click="confirmReserved(i)">
-              <sl-icon class="font-xl" slot="suffix" name="patch-minus"></sl-icon>
-              Doch nicht reserviert
-            </sl-button>
-            <sl-button v-if="i.state != 'purchased'" variant="primary" size="large" @click="confirmPurchased(i)">
-                <sl-icon class="font-xl" slot="suffix" name="cart-check"></sl-icon>
-                Habe ich gekauft
-            </sl-button>
-            <sl-button v-else variant="primary" size="large" @click="confirmPurchased(i)">
-              <sl-icon class="font-xl" slot="suffix" name="cart-dash"></sl-icon>
-              Doch nicht gekauft
-            </sl-button>
-          </sl-button-group>
-        </footer>
-      </sl-details>
+        </template>
+      </Sortable>
     </section>
     <section v-if="admin" class="mb-3xl">
       <h2>
@@ -335,13 +348,14 @@
 <script>
 import { inject } from 'vue';
 import { addToStorage, removeFromStorage } from "@/storage";
+import { Sortable } from "sortablejs-vue3";
 
 // import partials
 import Logo from '@/views/partials/Logo.vue';
 
 export default {
   name: 'App',
-  components: { Logo },
+  components: { Logo, Sortable },
   setup () {
     const supabase = inject('supabase');
     return { supabase };
@@ -414,7 +428,7 @@ export default {
       if (this.list?.id) {
         const { data: items, error: fail } = await this.supabase.from('items').select().eq('list', this.list.id)
         if (!fail) {
-          this.items = items.sort((a,b) => a.created < b.created);
+          this.items = items.sort((a,b) => a.weight - b.weight || Number(a.created < b.created));
         } else {
           console.error(fail);
         }
@@ -451,15 +465,22 @@ export default {
         // check if new or edited item
         switch (this.input.item.mode) {
           case 'INSERT':
+            i.weight = this.nextWeight();
             const insertResult = await this.supabase.from('items').insert(i).select()
-            if (!insertResult.error) this.items.unshift(i)
-            else console.error(insertResult.error)
-            break
+            if (!insertResult.error) {
+              this.items.unshift(i);
+            } else {
+              console.error(insertResult.error);
+            }
+            break;
           case 'UPDATE':
             const updateResult = await this.supabase.from('items').update(i).eq('id', this.input.item.target).select()
-            if (!updateResult.error) this.items[this.getItemPosition(i.id)] = i
-            else console.error(updateResult.error)
-            break
+            if (!updateResult.error) {
+              this.items[this.getItemPosition(i.id)] = i;
+            } else {
+              console.error(updateResult.error);
+            }
+            break;
           default: break
         }
         // reset form
@@ -547,6 +568,29 @@ export default {
       } else {
         console.error(deleteResult.error);
       }
+    },
+    // Update the order of items
+    async saveOrder (event) {
+      // Locally set the new order
+      const movedItem = this.items.splice(event.oldIndex, 1)[0];
+      this.items.splice(event.newIndex, 0, movedItem);
+      // Now sync the new weights for each item where the weight has changed
+      for (const [i, item] of this.items.entries()) {
+        if (item.weight !== i) {
+          const updateResult = await this.supabase.from('items').update({ weight: i }).eq('id', item.id).select()
+          if (updateResult.error) {
+            console.error(updateResult.error);
+          }
+        }
+      }
+    },
+    // Calculate the maximum existing weight plus one
+    nextWeight () {
+      return Math.max(...this.items.map(i => i.weight)) + 1;
+    },
+    getBaseUrl(url) {
+      const obj = new URL(url);
+      return obj.hostname;
     },
   },
   computed: {

@@ -31,6 +31,7 @@ CREATE TABLE items (
 	description text,
 	links text[],
 	state state DEFAULT 'open' NOT NULL,
+	weight bigint DEFAULT 0 NOT NULL,
 	created TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL,
 	modified TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
 );
