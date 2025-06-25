@@ -386,7 +386,6 @@ export default {
   async created () {
     // Initially get all existing items
     await this.getData();
-console.log(this.items);
 
     // Subscribe to all changes on the lists table and the items table to provide realtime experience
     this.supabase.channel('room').on(
