@@ -194,6 +194,9 @@ hr {
   text-overflow: ellipsis;
   white-space: nowrap;
 }
+.pre-line {
+  white-space: pre-line;
+}
 .text-gray {
   color: var(--sl-color-gray-400);
 }
