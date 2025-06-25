@@ -35,6 +35,9 @@ const router = useRouter();
 }
 #app > main {
   margin: 0 auto;
+  max-width: 740px;
+  width: 100%;
+  box-sizing: border-box;
   padding: var(--sl-spacing-3x-large) var(--sl-spacing-medium) var(--sl-spacing-4x-large) var(--sl-spacing-medium);
 }
 #app > footer {
@@ -42,11 +45,6 @@ const router = useRouter();
   padding: var(--sl-spacing-4x-large) var(--sl-spacing-medium);
   background: var(--sl-color-gray-800);
   color: var(--sl-color-primary-100);
-}
-@media (min-width: 740px) {
-  #app > main {
-    max-width: 740px;
-  }
 }
 
 </style>
