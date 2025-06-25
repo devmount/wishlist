@@ -12,7 +12,7 @@
       <Logo @click="$router.push({ name: 'start' })" :style="{ color: accent }" class="c-pointer" />
       <h1>{{ list.title }}</h1>
       <hr :style="{ background: accent }" /> 
-      <p>{{ list.description }}</p>
+      <p class="pre-line">{{ list.description }}</p>
     </header>
     <section v-if="admin" class="mb-3xl">
       <h2>
@@ -106,7 +106,7 @@
               </header>
               <!-- item information -->
               <main class="d-flex-column gap-m mb-m">
-                <div v-if="element.description">{{ element.description }}</div>
+                <div v-if="element.description" class="pre-line">{{ element.description }}</div>
                 <div v-if="element.links?.length">
                   <div>Hier kann man das kaufen:</div>
                   <a v-for="(l, i) in element.links" :key="l" class="d-flex align-items-center" :href="l" target="_blank">
