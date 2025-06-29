@@ -4,7 +4,7 @@ import App from '@/App.vue';
 const app = createApp(App);
 
 // init router
-import router from '@/router'
+import router from '@/router.js';
 app.use(router);
 
 // Supabase
