@@ -52,11 +52,15 @@
     </h2>
     <p>
       Zur Erinnerung sind hier die von dir angelegten Listen aufgeführt.
-      Diese Einträge sind nur auf diesem Gerät und in diesem Browser sichtbar, du kannst sie löschen, wenn du sie nicht mehr brauchst
-      (die Wunschlisten selbst werden dadurch nicht gelöscht).
+      Diese Einträge sind nur auf diesem Gerät und in diesem Browser sichtbar, du kannst sie löschen, wenn du sie nicht
+      mehr brauchst (die Wunschlisten selbst werden dadurch nicht gelöscht).
     </p>
     <div v-if="localLists.length>0" class="d-grid gap-m three-col">
-      <sl-card v-for="(l, i) in localLists" :key="i" :style="{ background: `linear-gradient(135deg, ${l.color} 0%, ${l.color} 24px, transparent 24px)` }">
+      <sl-card
+        v-for="(l, i) in localLists"
+        :key="i"
+        :style="{ background: `linear-gradient(135deg, ${l.color} 0%, ${l.color} 24px, transparent 24px)` }"
+      >
         <div class="text-overflow-ellipsis">{{ l.title }}</div>
         <div class="font-xs">
           Erstellt <sl-relative-time :date="l.created" lang="de"></sl-relative-time>
@@ -140,7 +144,7 @@ export default {
           'description': this.input.description,
           'slug_public': slugPublic,
           'slug_private': slugPrivate,
-        }).select()
+        }).select();
         if (!error) {
           const obj = addToStorage(data[0]);
           if (obj) {
@@ -154,19 +158,20 @@ export default {
       }
     },
     // remove list stored at <index> from local list and local storage
-    removeLocalListEntry (index) {
-      removeFromStorage(this.localLists[index])
-      this.localLists.splice(index, 1)
+    removeLocalListEntry (index: number) {
+      if (removeFromStorage(this.localLists[index])) {
+        this.localLists.splice(index, 1);
+      }
     },
     // get random slug string
-    generateSlug (length) {
+    generateSlug (length: number): string {
       const chars = '0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ';
       let result = '';
-      for (let i = length; i>0; --i) {
-        result += chars[Math.round(Math.random()*(chars.length-1))];
+      for (let i = length; i > 0; --i) {
+        result += chars[Math.round(Math.random() * (chars.length-1))];
       }
       return result;
-    }
+    },
   }
 }
 </script>

@@ -1,3 +1,12 @@
+<script setup lang="ts">
+import { inject } from "vue";
+import { useRouter } from 'vue-router';
+
+// global properties
+const version = inject<string>('version');
+const router = useRouter();
+</script>
+
 <template>
   <main>
     <router-view/>
@@ -15,15 +24,6 @@
     </div>
   </footer>
 </template>
-
-<script setup lang="ts">
-import { inject } from "vue";
-import { useRouter } from 'vue-router';
-
-// global properties
-const version = inject<string>('version');
-const router = useRouter();
-</script>
 
 <style>
 @import "assets/global.css";
