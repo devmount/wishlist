@@ -97,19 +97,21 @@
   </section>
 </template>
 
-<script>
+<script lang="ts">
 import { inject } from 'vue';
-import { getAllFromStorage, addToStorage, removeFromStorage } from "@/storage.ts";
+import { getAllFromStorage, addToStorage, removeFromStorage } from "@/storage";
 
 // import partials
 import Logo from '@/views/partials/Logo.vue';
+import { SupabaseClient } from '@supabase/supabase-js';
+import { Database } from '@/types/supabase';
 
 export default {
   name: 'App',
   components: { Logo },
   setup () {
-    const supabase = inject('supabase');
-    return { supabase }
+    const supabase = inject<SupabaseClient<Database>>('supabase');
+    return { supabase };
   },
   data: () => ({
     input: {
@@ -117,7 +119,7 @@ export default {
       color: '#0ea5e9',
       description: '',
     },
-    localLists: []
+    localLists: [] as Types.List[],
   }),
   created () {
     // Init list overview from local storage
