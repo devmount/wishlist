@@ -99,7 +99,7 @@
 
 <script>
 import { inject } from 'vue';
-import { getAllFromStorage, addToStorage, removeFromStorage } from "@/storage";
+import { getAllFromStorage, addToStorage, removeFromStorage } from "@/storage.ts";
 
 // import partials
 import Logo from '@/views/partials/Logo.vue';
