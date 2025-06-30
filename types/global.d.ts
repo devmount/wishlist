@@ -1,3 +1,7 @@
+// Vite env
+declare const APP_VERSION: string
+
+// App level
 namespace Types {
   export type List = {
     id: number;

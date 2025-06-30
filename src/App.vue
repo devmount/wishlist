@@ -21,7 +21,7 @@ import { inject } from "vue";
 import { useRouter } from 'vue-router';
 
 // global properties
-const version = inject('version');
+const version = inject<string>('version');
 const router = useRouter();
 </script>
 
@@ -32,19 +32,21 @@ const router = useRouter();
   display: grid;
   grid-template-rows: auto auto;
   min-height: 100vh;
-}
-#app > main {
-  margin: 0 auto;
-  max-width: 740px;
-  width: 100%;
-  box-sizing: border-box;
-  padding: var(--sl-spacing-3x-large) var(--sl-spacing-medium) var(--sl-spacing-4x-large) var(--sl-spacing-medium);
-}
-#app > footer {
-  text-align: center;
-  padding: var(--sl-spacing-4x-large) var(--sl-spacing-medium);
-  background: var(--sl-color-gray-800);
-  color: var(--sl-color-primary-100);
+
+  & > main {
+    margin: 0 auto;
+    max-width: 740px;
+    width: 100%;
+    box-sizing: border-box;
+    padding: var(--sl-spacing-3x-large) var(--sl-spacing-medium) var(--sl-spacing-4x-large) var(--sl-spacing-medium);
+  }
+
+  & > footer {
+    text-align: center;
+    padding: var(--sl-spacing-4x-large) var(--sl-spacing-medium);
+    background: var(--sl-color-gray-800);
+    color: var(--sl-color-primary-100);
+  }
 }
 
 </style>
