@@ -1,4 +1,4 @@
-<script lang="ts">
+<script setup lang="ts">
 import { inject, onMounted, reactive, ref } from 'vue';
 import { getAllFromStorage, addToStorage, removeFromStorage } from "@/storage";
 import { SupabaseClient } from '@supabase/supabase-js';
