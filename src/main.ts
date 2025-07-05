@@ -15,6 +15,7 @@ const SUPABASE_URL = import.meta.env.VITE_SB_URL;
 
 const supabase = createClient<Database>(SUPABASE_URL, SUPABASE_KEY);
 app.provide('supabase', supabase);
+/** @ts-ignore Defined in global.ts */
 app.provide('version', APP_VERSION);
 
 // Ready? let's go!
