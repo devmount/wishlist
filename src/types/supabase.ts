@@ -1,3 +1,5 @@
+import { ItemState } from "./global"
+
 // Download/update at https://supabase.com/dashboard/project/_/api?page=tables-intro
 export type Json =
   | string
@@ -44,7 +46,7 @@ export type Database = {
           list: number
           modified: string
           price: string | null
-          state: Database["public"]["Enums"]["state"]
+          state: ItemState
           title: string
           weight: number | null
         }
@@ -56,7 +58,7 @@ export type Database = {
           list: number
           modified?: string
           price?: string | null
-          state?: Database["public"]["Enums"]["state"]
+          state?: ItemState
           title: string
           weight?: number | null
         }
@@ -68,7 +70,7 @@ export type Database = {
           list?: number
           modified?: string
           price?: string | null
-          state?: Database["public"]["Enums"]["state"]
+          state?: ItemState
           title?: string
           weight?: number | null
         }

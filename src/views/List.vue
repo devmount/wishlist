@@ -4,7 +4,8 @@ import { addToStorage, removeFromStorage } from "@/storage";
 import { Sortable } from "sortablejs-vue3";
 import { SupabaseClient } from '@supabase/supabase-js';
 import { Database } from '@/types/supabase';
-import { SlDialog, SlDrawer, SlTooltip } from '@shoelace-style/shoelace';
+import { SlDialog, SlDrawer, SlTooltip, SlDetails } from '@shoelace-style/shoelace';
+import { List, Item, ItemState, InputMode } from '@/types/global';
 
 // import partials
 import Logo from '@/views/partials/Logo.vue';
@@ -36,23 +37,22 @@ export default {
   },
   data: () => ({
     loading: true,
-    list: null as Types.List,
-    items: [] as Types.Item[],
+    list: null as List,
+    items: [] as Item[],
     input: {
       item: {
-        data: {} as Types.Item,
-        mode: '', // 'INSERT' | 'UPDATE'
-        target: null,
+        data: {} as Item,
+        mode: InputMode.Insert,
+        target: null as number,
       },
       list: {
         title: '',
         color: '#0ea5e9',
         description: '',
-      } as Types.List,
+      } as List,
     },
     dialog: {
-      item: null as Types.Item,
-      action: '', // 'reserve' | 'purchase' | 'delete
+      item: null as Item,
     },
     confirmListDeletion: false,
   }),
@@ -137,10 +137,10 @@ export default {
       if (this.input.item.data.title) {
         // if valid input: get and preprocess item data
         let i = JSON.parse(JSON.stringify(this.input.item.data));
-        i.links = i.links ? i.links.split('\n').map(l => l.trim()) : [];
+        i.links = i.links ? i.links.split('\n').map((l: string) => l.trim()) : [];
         // check if new or edited item
         switch (this.input.item.mode) {
-          case 'INSERT':
+          case InputMode.Insert:
             i.weight = this.nextWeight();
             const insertResult = await this.supabase.from('items').insert(i).select()
             if (!insertResult.error) {
@@ -149,7 +149,7 @@ export default {
               console.error(insertResult.error);
             }
             break;
-          case 'UPDATE':
+          case InputMode.Update:
             const updateResult = await this.supabase.from('items').update(i).eq('id', this.input.item.target).select()
             if (!updateResult.error) {
               this.items[this.getItemPosition(i.id)] = i;
@@ -164,28 +164,27 @@ export default {
       }
     },
     // edit existing item
-    editItem (item: Types.Item) {
+    editItem (item: Item) {
       let i = JSON.parse(JSON.stringify(item));
       i.links = item.links ? item.links.join('\n') : '';
       this.input.item.data = i;
-      this.input.item.mode = 'UPDATE';
+      this.input.item.mode = InputMode.Update;
       this.input.item.target = i.id;
     },
     // reset item form
     resetItemInput () {
       this.input.item.data = JSON.parse(JSON.stringify(this.initItem));
-      this.input.item.mode = 'INSERT';
+      this.input.item.mode = InputMode.Insert;
       this.input.item.target = null;
     },
     // open dialog for reservation confirmation
-    confirmReserved (item) {
+    confirmReserved (item: Item) {
       this.dialog.item = item;
-      this.dialog.action = 'reserve';
       this.dialogReserve.show();
     },
     // set item state to reserved or open and close dialog
-    async toggleReserved (item) {
-      const state = item.state == 'reserved' ? 'open' : 'reserved';
+    async toggleReserved (item: Item) {
+      const state = item.state == ItemState.Reserved ? ItemState.Open : ItemState.Reserved;
       const { data, error } = await this.supabase.from('items').update({ state: state }).eq('id', item.id).select();
       if (!error) {
         this.items[this.getItemPosition(data[0].id)].state = state;
@@ -195,14 +194,13 @@ export default {
       this.dialogReserve.hide();
     },
     // open dialog for purchase confirmation
-    confirmPurchased (item) {
+    confirmPurchased (item: Item) {
       this.dialog.item = item;
-      this.dialog.action = 'purchase';
       this.dialogPurchase.show();
     },
     // set item state to purchased or open
-    async togglePurchased (item) {
-      const state = item.state == 'purchased' ? 'open' : 'purchased'
+    async togglePurchased (item: Item) {
+      const state = item.state == ItemState.Purchased ? ItemState.Open : ItemState.Purchased;
       const { data, error } = await this.supabase.from('items').update({ state: state }).eq('id', item.id).select()
       if (!error) {
         this.items[this.getItemPosition(data[0].id)].state = state;
@@ -212,13 +210,12 @@ export default {
       this.dialogPurchase.hide();
     },
     // open dialog for item removal confirmation
-    confirmRemoval (item) {
+    confirmRemoval (item: Item) {
       this.dialog.item = item;
-      this.dialog.action = 'delete';
       this.dialogDelete.show();
     },
     // delete existing item
-    async deleteItem (item) {
+    async deleteItem (item: Item) {
       const { error } = await this.supabase.from('items').delete().match({ id: item.id });
       if (!error) {
         this.items.slice(this.getItemPosition(item.id), 1);
@@ -241,8 +238,10 @@ export default {
       window.location.href = "mailto:?subject=Meine Wunschliste: " + this.list?.title + "&body=" + text
     },
     // close all other list items if one is shown
-    closeOtherItems (index) {
-      [...this.wishlist.querySelectorAll('sl-details')].map((item, position) => (item.open = position == index))
+    closeOtherItems (index: number) {
+      [...this.wishlist.querySelectorAll('sl-details')].forEach(
+        (item: SlDetails, position: number) => (item.open = position == index)
+      );
     },
     // delete existing item
     async deleteList () {
@@ -274,9 +273,14 @@ export default {
       return Math.max(...this.items.map(i => i.weight)) + 1;
     },
     // Extract the hostname from a given url
-    getBaseUrl(url) {
+    getBaseUrl(url: string) {
       const obj = new URL(url);
       return obj.hostname;
+    },
+    // Handle spoiler changes
+    async toggleSpoiler() {
+      this.list.spoiler = !this.list.spoiler;
+      await this.supabase.from('lists').update({ spoiler: this.list.spoiler }).eq('id', this.list.id).select();
     },
   },
   computed: {
@@ -317,13 +321,25 @@ export default {
     // prived accent color once list color is loaded
     accent () {
       return this.list?.color ?? '#000000'
-    }
+    },
+    // Check input modes
+    isInputUpdate () {
+      return this.input.item.mode == InputMode.Update;
+    },
+    isInputInsert () {
+      return this.input.item.mode == InputMode.Insert;
+    },
+    // Check item states
+    isItemOpen () {
+      return this.dialog.item.state == ItemState.Open;
+    },
+    isItemReserved () {
+      return this.dialog.item.state == ItemState.Reserved;
+    },
+    isItemPurchased () {
+      return this.dialog.item.state == ItemState.Purchased;
+    },
   },
-  watch: {
-    'list.spoiler': async function (newVal) {
-      await this.supabase.from('lists').update({ spoiler: newVal }).eq('id', this.list?.id).select()
-    }
-  }
 }
 </script>
 
@@ -355,7 +371,7 @@ export default {
             class="check-input grow-5"
             type="text"
             :value="input.item.data.title"
-            @sl-change="input.item.data.title = $event.target.value"
+            @input="input.item.data.title = $event.target.value"
             placeholder="Titel"
             required
           ></sl-input>
@@ -363,7 +379,7 @@ export default {
             class="grow-1"
             type="text"
             :value="input.item.data.price"
-            @sl-change="input.item.data.price = $event.target.value"
+            @input="input.item.data.price = $event.target.value"
             placeholder="Preis (optional)"
           ></sl-input>
         </div>
@@ -371,7 +387,7 @@ export default {
           class="grow-1 mb-m"
           type="text"
           :value="input.item.data.description"
-          @sl-change="input.item.data.description = $event.target.value"
+          @input="input.item.data.description = $event.target.value"
           placeholder="Beschreibung (optional)"
           rows="1"
           resize="auto"
@@ -379,21 +395,21 @@ export default {
         <sl-textarea
           class="check-input grow-1 mb-m"
           :value="input.item.data.links"
-          @sl-change="input.item.data.links = $event.target.value"
+          @input="input.item.data.links = $event.target.value"
           placeholder="Link Adressen zum Artikel (ein Link pro Zeile)"
           rows="1"
           resize="auto"
         ></sl-textarea>
         <div class="d-flex justify-end gap-m">
-          <sl-button v-if="input.item.mode=='UPDATE'" variant="default" size="large" @click="resetItemInput()">
+          <sl-button v-if="isInputUpdate" variant="default" size="large" @click="resetItemInput()">
             <sl-icon class="font-xl" slot="suffix" name="arrow-return-left"></sl-icon>
             Lieber nicht ändern
           </sl-button>
-          <sl-button v-if="input.item.mode=='UPDATE'" type="submit" variant="primary" size="large">
+          <sl-button v-if="isInputUpdate" type="submit" variant="primary" size="large">
             <sl-icon class="font-xl" slot="suffix" name="pencil"></sl-icon>
             Wunsch anpassen
           </sl-button>
-          <sl-button v-if="input.item.mode=='INSERT'" type="submit" variant="primary" size="large">
+          <sl-button v-if="isInputInsert" type="submit" variant="primary" size="large">
             <sl-icon class="font-xl" slot="suffix" name="plus"></sl-icon>
             Wünschen
           </sl-button>
@@ -549,7 +565,7 @@ export default {
               <sl-color-picker
                 format="hex"
                 :value="input.list.color"
-                @sl-change="input.list.color = $event.target.value"
+                @input="input.list.color = $event.target.value"
               ></sl-color-picker>
             </div>
             <sl-textarea
@@ -569,13 +585,13 @@ export default {
       <div>
         <h3>Spoiler</h3>
         <p>Wenn aktiviert, werden alle Reservierungen und Käufe auch in der Verwaltungsansicht der Wunschliste (geheimer Link) angezeigt.</p>
-        <sl-switch @sl-change="list.spoiler = !list.spoiler" v-model="list.spoiler"></sl-switch>
+        <sl-switch @sl-change="toggleSpoiler()" :checked.prop="list.spoiler"></sl-switch>
       </div>
       <div class="danger">
         <h3>Diese Liste kann weg</h3>
         <p>Hier kann die komplette Wunschliste gelöscht werden. <strong>Das kann nicht rückgängig gemacht werden!</strong> Bist du sicher, dass du das willst?</p>
         <form @submit.prevent="deleteList()" class="d-flex-column align-items-start gap-m">
-          <sl-checkbox @sl-change="confirmListDeletion = $event.target.checked">
+          <sl-checkbox @input="confirmListDeletion = $event.target.checked">
             Ja, ich bin mir sicher
           </sl-checkbox>
           <sl-button type="submit" variant="danger" size="large" :disabled="!confirmListDeletion">
@@ -586,15 +602,15 @@ export default {
       </div>
     </sl-drawer>
     <!-- dialog: item state handling reservation -->
-    <sl-dialog ref="dialog-reserve">
+    <sl-dialog ref="dialogReserve">
       <div slot="label">
-        <span v-if="dialog.item && dialog.item.state != 'reserved'">Möchtest du reservieren?</span>
-        <span v-if="dialog.item && dialog.item.state == 'reserved'">Möchtest du die Reservierung aufheben?</span>
+        <span v-if="dialog.item && !isItemReserved">Möchtest du reservieren?</span>
+        <span v-if="dialog.item && isItemReserved">Möchtest du die Reservierung aufheben?</span>
       </div>
-      <div v-if="dialog.item && dialog.item.state != 'reserved'">
+      <div v-if="dialog.item && !isItemReserved">
         Damit markierst du den Wunsch «{{ dialog.item.title }}» für jeden sichtbar als reserviert.
       </div>
-      <div v-if="dialog.item && dialog.item.state == 'reserved'">
+      <div v-if="dialog.item && isItemReserved">
         Damit entfernst du die Reservierung für den Wunsch «{{ dialog.item.title }}»
         und er wird für jeden wieder als verfügbar angezeigt.
       </div>
@@ -603,26 +619,26 @@ export default {
           <sl-icon class="font-xl" slot="suffix" name="arrow-return-left"></sl-icon>
           Lieber nicht
         </sl-button>
-        <sl-button v-if="dialog.item && dialog.item.state != 'reserved'" variant="neutral" size="large" @click="toggleReserved(dialog.item)">
+        <sl-button v-if="dialog.item && !isItemReserved" variant="neutral" size="large" @click="toggleReserved(dialog.item)">
           <sl-icon class="font-xl" slot="suffix" name="patch-exclamation"></sl-icon>
           Ja, bitte reservieren
         </sl-button>
-        <sl-button v-if="dialog.item && dialog.item.state == 'reserved'" variant="neutral" size="large" @click="toggleReserved(dialog.item)">
+        <sl-button v-if="dialog.item && isItemReserved" variant="neutral" size="large" @click="toggleReserved(dialog.item)">
           <sl-icon class="font-xl" slot="suffix" name="patch-minus"></sl-icon>
           Ja, Reservierung aufheben
         </sl-button>
       </div>
     </sl-dialog>
     <!-- dialog: item state handling reservation -->
-    <sl-dialog ref="dialog-purchase">
+    <sl-dialog ref="dialogPurchase">
       <div slot="label">
-        <span v-if="dialog.item && dialog.item.state != 'purchased'">Als gekauft markieren?</span>
-        <span v-if="dialog.item && dialog.item.state == 'purchased'">Den Kauf stornieren?</span>
+        <span v-if="dialog.item && !isItemPurchased">Als gekauft markieren?</span>
+        <span v-if="dialog.item && isItemPurchased">Den Kauf stornieren?</span>
       </div>
-      <div v-if="dialog.item && dialog.item.state != 'purchased'">
+      <div v-if="dialog.item && !isItemPurchased">
         Damit markierst du den Wunsch «{{ dialog.item.title }}» für jeden sichtbar als gekauft.
       </div>
-      <div v-if="dialog.item && dialog.item.state == 'purchased'">
+      <div v-if="dialog.item && isItemPurchased">
         Damit ist der Wunsch «{{ dialog.item.title }}» nicht mehr als gekauft markiert
         und er wird für jeden wieder als verfügbar angezeigt.
       </div>
@@ -631,18 +647,18 @@ export default {
           <sl-icon class="font-xl" slot="suffix" name="arrow-return-left"></sl-icon>
           Lieber nicht
         </sl-button>
-        <sl-button v-if="dialog.item && dialog.item.state != 'purchased'" variant="primary" size="large" @click="togglePurchased(dialog.item)">
+        <sl-button v-if="dialog.item && !isItemPurchased" variant="primary" size="large" @click="togglePurchased(dialog.item)">
           <sl-icon class="font-xl" slot="suffix" name="cart-check"></sl-icon>
           Ja, hab ich gekauft
         </sl-button>
-        <sl-button v-if="dialog.item && dialog.item.state == 'purchased'" variant="primary" size="large" @click="togglePurchased(dialog.item)">
+        <sl-button v-if="dialog.item && isItemPurchased" variant="primary" size="large" @click="togglePurchased(dialog.item)">
           <sl-icon class="font-xl" slot="suffix" name="cart-dash"></sl-icon>
           Ja, der Kauf hat nicht geklappt
         </sl-button>
       </div>
     </sl-dialog>
     <!-- dialog: item removal -->
-    <sl-dialog ref="dialog-delete">
+    <sl-dialog ref="dialogDelete">
       <div slot="label">
         Diesen Wunsch löschen?
       </div>

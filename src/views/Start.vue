@@ -6,6 +6,7 @@ import { Database } from '@/types/supabase';
 
 // import partials
 import Logo from '@/views/partials/Logo.vue';
+import { List } from '@/types/global';
 
 export default {
   name: 'App',
@@ -20,7 +21,7 @@ export default {
       color: '#0ea5e9',
       description: '',
     },
-    localLists: [] as Types.List[],
+    localLists: [] as List[],
   }),
   created () {
     // Init list overview from local storage
