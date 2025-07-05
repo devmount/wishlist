@@ -20,7 +20,7 @@ export type Item = {
   description: string | null;
   links: string[] | null;
   price: string | null;
-  state: ItemState; // ["open", "reserved", "purchased"];
+  state: ItemState;
   weight: number | null;
   modified: string;
   created: string;
