@@ -427,7 +427,7 @@ const isItemPurchased =  computed(() => {
         <template #item="{ element, index }">
           <div class="draggable d-flex align-items-center">
             <sl-icon
-              v-if="isAdmin"
+              v-if="isAdmin && items.length > 1"
               name="chevron-bar-expand"
               class="icon-handle c-pointer p-s pl-xs font-xl shrink-0"
             ></sl-icon>
