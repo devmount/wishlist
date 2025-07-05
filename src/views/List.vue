@@ -10,6 +10,7 @@ import { useRoute, useRouter } from 'vue-router';
 
 // Import partials
 import Logo from '@/views/partials/Logo.vue';
+import { notify } from '@/utils';
 
 // References
 const wishlist = ref<HTMLElement>();
@@ -121,8 +122,10 @@ const syncList = async () => {
       .select();
     if (!error) {
       list.value = data[0];
+      notify('Gespeichert!', 'success');
     } else {
       console.error(error);
+      notify('Die Änderung konnte nicht gespeichert werden!', 'danger');
     }
     drawer.value.hide();
   }
@@ -150,19 +153,23 @@ const syncItem = async () => {
     switch (input.item.mode) {
       case InputMode.Insert:
         i.weight = nextWeight();
-        const insertResult = await supabase.from('items').insert(i).select()
-        if (!insertResult.error) {
+        const { error: insertError } = await supabase.from('items').insert(i)
+        if (!insertError) {
           items.value.unshift(i);
+          notify('Wunsch hinzugefügt!', 'success');
         } else {
-          console.error(insertResult.error);
+          console.error(insertError);
+          notify('Die Änderung konnte nicht gespeichert werden!', 'danger');
         }
         break;
       case InputMode.Update:
-        const updateResult = await supabase.from('items').update(i).eq('id', input.item.target).select()
-        if (!updateResult.error) {
+        const { error: updateError } = await supabase.from('items').update(i).eq('id', input.item.target)
+        if (!updateError) {
           items.value[getItemPosition(i.id)] = i;
+          notify('Wunsch erfolgreich aktualisiert!', 'success');
         } else {
-          console.error(updateResult.error);
+          console.error(updateError);
+          notify('Die Änderung konnte nicht gespeichert werden!', 'danger');
         }
         break;
       default: break
@@ -201,12 +208,22 @@ const getItemPosition = (id: number) => {
 
 // Set item state to reserved or open and close dialog
 const toggleReserved = async (item: Item) => {
-  const state = item.state == ItemState.Reserved ? ItemState.Open : ItemState.Reserved;
+  const state = item.state === ItemState.Reserved ? ItemState.Open : ItemState.Reserved;
   const { data, error } = await supabase.from('items').update({ state: state }).eq('id', item.id).select();
   if (!error) {
     items.value[getItemPosition(data[0].id)].state = state;
+    if (state === ItemState.Reserved) {
+      notify(
+        'Erfolgreich reserviert!',
+        'success',
+        'Bitte merke dir, dass dieser Wunsch von dir reserviert ist.',
+        'info-circle',
+        6000
+      );
+    }
   } else {
     console.error(error);
+    notify('Der Reservierungs-Status konnte nicht gespeichert werden!', 'danger');
   }
   dialogReserve.value.hide();
 };
@@ -219,12 +236,16 @@ const confirmPurchased = (item: Item) => {
 
 // Set item state to purchased or open
 const togglePurchased = async (item: Item) => {
-  const state = item.state == ItemState.Purchased ? ItemState.Open : ItemState.Purchased;
+  const state = item.state === ItemState.Purchased ? ItemState.Open : ItemState.Purchased;
   const { data, error } = await supabase.from('items').update({ state: state }).eq('id', item.id).select()
   if (!error) {
     items.value[getItemPosition(data[0].id)].state = state;
+    if (state === ItemState.Purchased) {
+      notify('Vielen Dank! ❤️', 'success');
+    }
   } else {
     console.error(error);
+    notify('Der Kauf-Status konnte nicht gespeichert werden!', 'danger');
   }
   dialogPurchase.value.hide();
 };
@@ -242,6 +263,7 @@ const deleteItem = async (item: Item) => {
     items.value.slice(getItemPosition(item.id), 1);
   } else {
     console.error(error);
+    notify('Der Wunsch konnte nicht gelöscht werden!', 'danger');
   }
   dialogDelete.value.hide();
 };
@@ -260,28 +282,40 @@ const closeOtherItems = (index: number) => {
 
 // Delete existing item
 const deleteList = async () => {
-  const deleteResult = await supabase.from('lists').delete().eq('id', list.value?.id)
-  if (!deleteResult.error) {
+  const { error } = await supabase.from('lists').delete().eq('id', list.value?.id)
+  if (!error) {
     removeFromStorage(list.value);
+    notify('Erfolgreich gelöscht!', 'success');
     router.push({ name: 'start' });
   } else {
-    console.error(deleteResult.error);
+    console.error(error);
+    notify('Die List konnte nicht gelöscht werden!', 'danger');
   }
 };
 
 // Update the order of items
 const saveOrder = async (event) => {
+  let errorOccured = false;
+  
   // Locally set the new order
   const movedItem = items.value.splice(event.oldIndex, 1)[0];
   items.value.splice(event.newIndex, 0, movedItem);
+  
   // Now sync the new weights for each item where the weight has changed
   for (const [i, item] of items.value.entries()) {
     if (item.weight !== i) {
-      const updateResult = await supabase.from('items').update({ weight: i }).eq('id', item.id).select()
-      if (updateResult.error) {
-        console.error(updateResult.error);
+      const { error } = await supabase.from('items').update({ weight: i }).eq('id', item.id).select()
+      if (error) {
+        errorOccured = true;
+        console.error(error);
       }
     }
+  }
+  // Toast success
+  if (!errorOccured) {
+    notify('Gespeichert!', 'success');
+  } else {
+    notify('Die Änderung konnte nicht gespeichert werden!', 'danger');
   }
 };
 
@@ -294,53 +328,58 @@ const getBaseUrl = (url: string) => {
 // Handle spoiler changes
 const toggleSpoiler = async () => {
   list.value.spoiler = !list.value.spoiler;
-  await supabase.from('lists').update({ spoiler: list.value.spoiler }).eq('id', list.value.id).select();
+  const { error } = await supabase.from('lists').update({ spoiler: list.value.spoiler }).eq('id', list.value.id);
+  if (!error) {
+    notify('Gespeichert!', 'success');
+  } else {
+    notify('Die Änderung konnte nicht gespeichert werden!', 'danger');
+  }
 };
 
 // Return base url
-const baseUrl =  computed(() => {
+const baseUrl = computed(() => {
   return window.location.origin
 });
 
 // Return complete public link for sharing
-const publicLink =  computed(() => {
+const publicLink = computed(() => {
   return baseUrl.value + '/' + route.params.public
 });
 
 // Return complete private link for administration
-const privateLink =  computed(() => {
+const privateLink = computed(() => {
   return baseUrl.value + '/' + route.params.public + '/' + route.params.private
 });
 
 // Check if public token is given and correct
-const visitor =  computed(() => {
+const visitor = computed(() => {
   return route.params.public && list.value?.slug_public === route.params.public && !route.params.private
 });
 
 // Approve if something is allowed to be shown
-const allowed =  computed(() => {
+const allowed = computed(() => {
   return visitor.value || list.value?.spoiler
 });
 
 // Prived accent color once list color is loaded
-const accent =  computed(() => {
+const accent = computed(() => {
   return list.value?.color ?? '#000000'
 });
 
 // Check input modes
-const isInputUpdate =  computed(() => {
+const isInputUpdate = computed(() => {
   return input.item.mode == InputMode.Update;
 });
-const isInputInsert =  computed(() => {
+const isInputInsert = computed(() => {
   return input.item.mode == InputMode.Insert;
 });
 
 // Check item states
-const isItemReserved =  computed(() => {
-  return dialog.item.state == ItemState.Reserved;
+const isItemReserved = computed(() => {
+  return dialog.item?.state == ItemState.Reserved;
 });
-const isItemPurchased =  computed(() => {
-  return dialog.item.state == ItemState.Purchased;
+const isItemPurchased = computed(() => {
+  return dialog.item?.state == ItemState.Purchased;
 });
 </script>
 
@@ -619,14 +658,15 @@ const isItemPurchased =  computed(() => {
     <!-- Dialog: item state handling reservation -->
     <sl-dialog ref="dialogReserve">
       <div slot="label">
-        <span v-if="dialog.item && !isItemReserved">Möchtest du reservieren?</span>
-        <span v-if="dialog.item && isItemReserved">Möchtest du die Reservierung aufheben?</span>
+        <span v-if="!isItemReserved">Möchtest du reservieren?</span>
+        <span v-if="isItemReserved">Möchtest du die Reservierung aufheben?</span>
       </div>
-      <div v-if="dialog.item && !isItemReserved">
-        Damit markierst du den Wunsch «{{ dialog.item.title }}» für jeden sichtbar als reserviert.
+      <div v-if="!isItemReserved">
+        Damit markierst du den Wunsch «{{ dialog.item?.title }}» für jeden sichtbar als reserviert.
+        <strong>Bitte merke dir deine Reservierungen gut, damit du sie später nocht weißt!</strong>
       </div>
-      <div v-if="dialog.item && isItemReserved">
-        Damit entfernst du die Reservierung für den Wunsch «{{ dialog.item.title }}»
+      <div v-if="isItemReserved">
+        Damit entfernst du die Reservierung für den Wunsch «{{ dialog.item?.title }}»
         und er wird für jeden wieder als verfügbar angezeigt.
       </div>
       <div slot="footer">
@@ -634,11 +674,11 @@ const isItemPurchased =  computed(() => {
           <sl-icon class="font-xl" slot="suffix" name="arrow-return-left"></sl-icon>
           Lieber nicht
         </sl-button>
-        <sl-button v-if="dialog.item && !isItemReserved" variant="neutral" size="large" @click="toggleReserved(dialog.item)">
+        <sl-button v-if="!isItemReserved" variant="neutral" size="large" @click="toggleReserved(dialog.item)">
           <sl-icon class="font-xl" slot="suffix" name="patch-exclamation"></sl-icon>
           Ja, bitte reservieren
         </sl-button>
-        <sl-button v-if="dialog.item && isItemReserved" variant="neutral" size="large" @click="toggleReserved(dialog.item)">
+        <sl-button v-if="isItemReserved" variant="neutral" size="large" @click="toggleReserved(dialog.item)">
           <sl-icon class="font-xl" slot="suffix" name="patch-minus"></sl-icon>
           Ja, Reservierung aufheben
         </sl-button>
@@ -647,14 +687,14 @@ const isItemPurchased =  computed(() => {
     <!-- Dialog: item state handling reservation -->
     <sl-dialog ref="dialogPurchase">
       <div slot="label">
-        <span v-if="dialog.item && !isItemPurchased">Als gekauft markieren?</span>
-        <span v-if="dialog.item && isItemPurchased">Den Kauf stornieren?</span>
+        <span v-if="!isItemPurchased">Als gekauft markieren?</span>
+        <span v-if="isItemPurchased">Den Kauf stornieren?</span>
       </div>
-      <div v-if="dialog.item && !isItemPurchased">
-        Damit markierst du den Wunsch «{{ dialog.item.title }}» für jeden sichtbar als gekauft.
+      <div v-if="!isItemPurchased">
+        Damit markierst du den Wunsch «{{ dialog.item?.title }}» für jeden sichtbar als gekauft.
       </div>
-      <div v-if="dialog.item && isItemPurchased">
-        Damit ist der Wunsch «{{ dialog.item.title }}» nicht mehr als gekauft markiert
+      <div v-if="isItemPurchased">
+        Damit ist der Wunsch «{{ dialog.item?.title }}» nicht mehr als gekauft markiert
         und er wird für jeden wieder als verfügbar angezeigt.
       </div>
       <div slot="footer">
@@ -662,11 +702,11 @@ const isItemPurchased =  computed(() => {
           <sl-icon class="font-xl" slot="suffix" name="arrow-return-left"></sl-icon>
           Lieber nicht
         </sl-button>
-        <sl-button v-if="dialog.item && !isItemPurchased" variant="primary" size="large" @click="togglePurchased(dialog.item)">
+        <sl-button v-if="!isItemPurchased" variant="primary" size="large" @click="togglePurchased(dialog.item)">
           <sl-icon class="font-xl" slot="suffix" name="cart-check"></sl-icon>
           Ja, hab ich gekauft
         </sl-button>
-        <sl-button v-if="dialog.item && isItemPurchased" variant="primary" size="large" @click="togglePurchased(dialog.item)">
+        <sl-button v-if="isItemPurchased" variant="primary" size="large" @click="togglePurchased(dialog.item)">
           <sl-icon class="font-xl" slot="suffix" name="cart-dash"></sl-icon>
           Ja, der Kauf hat nicht geklappt
         </sl-button>
@@ -677,8 +717,8 @@ const isItemPurchased =  computed(() => {
       <div slot="label">
         Diesen Wunsch löschen?
       </div>
-      <div v-if="dialog.item">
-        Damit entfernst den Wunsch «{{ dialog.item.title }}». Dieses Aktion kann nicht rückgängig gemacht werden.
+      <div>
+        Damit entfernst den Wunsch «{{ dialog.item?.title }}». Dieses Aktion kann nicht rückgängig gemacht werden.
       </div>
       <div slot="footer">
         <sl-button variant="default" @click="dialogDelete.hide()" class="mr-s" size="large">

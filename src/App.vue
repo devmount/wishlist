@@ -49,4 +49,8 @@ const router = useRouter();
   }
 }
 
+.sl-toast-stack {
+  top: auto;
+  bottom: 0;
+}
 </style>
