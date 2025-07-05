@@ -1,10 +1,10 @@
-<script lang="ts">
+<script setup lang="ts">
 import { computed, inject, onMounted, onUnmounted, reactive, ref } from 'vue';
 import { addToStorage, removeFromStorage } from "@/storage";
 import { Sortable } from "sortablejs-vue3";
 import { SupabaseClient } from '@supabase/supabase-js';
 import { Database } from '@/types/supabase';
-import { SlDialog, SlDrawer, SlTooltip, SlDetails } from '@shoelace-style/shoelace';
+import { SlDialog, SlDrawer, SlDetails } from '@shoelace-style/shoelace';
 import { List, Item, ItemState, InputMode } from '@/types/global';
 import { useRoute, useRouter } from 'vue-router';
 
@@ -17,8 +17,6 @@ const drawer = ref<SlDrawer>();
 const dialogPurchase = ref<SlDialog>();
 const dialogReserve = ref<SlDialog>();
 const dialogDelete = ref<SlDialog>();
-const tooltipPublic = ref<SlTooltip>();
-const tooltipPrivate = ref<SlTooltip>();
 
 const supabase = inject<SupabaseClient<Database>>('supabase');
 const route = useRoute();
@@ -248,12 +246,6 @@ const deleteItem = async (item: Item) => {
   dialogDelete.value.hide();
 };
 
-// Copy given <text> to system clipboard
-const copyToClipboard = (text: string, tooltip: SlTooltip) => {
-  navigator.clipboard.writeText(text);
-  setTimeout(() => tooltip.hide(), 3000);
-};
-
 // Send given text as body content in new email
 const sendEmail = (text: string) => {
   window.location.href = "mailto:?subject=Meine Wunschliste: " + list.value?.title + "&body=" + text;
@@ -305,61 +297,57 @@ const toggleSpoiler = async () => {
   await supabase.from('lists').update({ spoiler: list.value.spoiler }).eq('id', list.value.id).select();
 };
 
-export default {
-  methods: {
+// Return base url
+const baseUrl =  computed(() => {
+  return window.location.origin
+});
 
-  },
-  computed: {
-    // Return base url
-    baseUrl () {
-      return window.location.origin
-    },
-    // Return complete public link for sharing
-    publicLink () {
-      return this.baseUrl + '/' + route.params.public
-    },
-    // Return complete private link for administration
-    privateLink () {
-      return this.baseUrl + '/' + route.params.public + '/' + route.params.private
-    },
+// Return complete public link for sharing
+const publicLink =  computed(() => {
+  return baseUrl.value + '/' + route.params.public
+});
 
-    // Check if public token is given and correct
-    visitor () {
-      return route.params.public && list.value?.slug_public === route.params.public && !route.params.private
-    },
-    // Approve if something is allowed to be shown
-    allowed () {
-      return this.visitor || list.value?.spoiler
-    },
-    // Prived accent color once list color is loaded
-    accent () {
-      return list.value?.color ?? '#000000'
-    },
-    // Check input modes
-    isInputUpdate () {
-      return this.input.item.mode == InputMode.Update;
-    },
-    isInputInsert () {
-      return this.input.item.mode == InputMode.Insert;
-    },
-    // Check item states
-    isItemOpen () {
-      return dialog.item.state == ItemState.Open;
-    },
-    isItemReserved () {
-      return dialog.item.state == ItemState.Reserved;
-    },
-    isItemPurchased () {
-      return dialog.item.state == ItemState.Purchased;
-    },
-  },
-}
+// Return complete private link for administration
+const privateLink =  computed(() => {
+  return baseUrl.value + '/' + route.params.public + '/' + route.params.private
+});
+
+// Check if public token is given and correct
+const visitor =  computed(() => {
+  return route.params.public && list.value?.slug_public === route.params.public && !route.params.private
+});
+
+// Approve if something is allowed to be shown
+const allowed =  computed(() => {
+  return visitor.value || list.value?.spoiler
+});
+
+// Prived accent color once list color is loaded
+const accent =  computed(() => {
+  return list.value?.color ?? '#000000'
+});
+
+// Check input modes
+const isInputUpdate =  computed(() => {
+  return input.item.mode == InputMode.Update;
+});
+const isInputInsert =  computed(() => {
+  return input.item.mode == InputMode.Insert;
+});
+
+// Check item states
+const isItemReserved =  computed(() => {
+  return dialog.item.state == ItemState.Reserved;
+});
+const isItemPurchased =  computed(() => {
+  return dialog.item.state == ItemState.Purchased;
+});
 </script>
 
 <template>
   <div v-if="loading">
     <header class="content-center mb-3xl">
-      <Logo @click="$router.push({ name: 'start' })" class="c-pointer" />
+      <Logo @click="router.push({ name: 'start' })" class="c-pointer" />
       <div class="mt-2xl">
         <sl-spinner class="font-3xl"></sl-spinner>
       </div>
@@ -367,12 +355,12 @@ export default {
   </div>
   <div v-else-if="list">
     <header class="content-center mb-3xl">
-      <Logo @click="$router.push({ name: 'start' })" :style="{ color: accent }" class="c-pointer" />
+      <Logo @click="router.push({ name: 'start' })" :style="{ color: accent }" class="c-pointer" />
       <h1>{{ list.title }}</h1>
       <hr :style="{ background: accent }" /> 
       <p class="pre-line">{{ list.description }}</p>
     </header>
-    <section v-if="admin" class="mb-3xl">
+    <section v-if="isAdmin" class="mb-3xl">
       <h2>
         <sl-icon class="font-xl" name="bag-plus"></sl-icon>
         Füge einen Wunsch hinzu
@@ -439,7 +427,7 @@ export default {
         <template #item="{ element, index }">
           <div class="draggable d-flex align-items-center">
             <sl-icon
-              v-if="admin"
+              v-if="isAdmin"
               name="chevron-bar-expand"
               class="icon-handle c-pointer p-s pl-xs font-xl shrink-0"
             ></sl-icon>
@@ -467,7 +455,7 @@ export default {
                 <div v-if="element.description" class="pre-line">{{ element.description }}</div>
                 <div v-if="element.links?.length">
                   <div>Hier kann man das kaufen:</div>
-                  <a v-for="(l, i) in element.links" :key="l" class="d-flex align-items-center" :href="l" target="_blank">
+                  <a v-for="l in element.links" :key="l" class="d-flex align-items-center" :href="l" target="_blank">
                     <sl-icon name="link-45deg" class="shrink-0 font-l mt-3xs mr-xs"></sl-icon>
                     <span class="text-overflow-ellipsis">{{ getBaseUrl(l) }}</span>
                   </a>
@@ -483,10 +471,10 @@ export default {
               </main>
               <!-- Flag and manage item -->
               <footer class="d-flex justify-end flex-wrap gap-m">
-                <sl-button v-if="admin" variant="danger" size="large" @click="confirmRemoval(element)">
+                <sl-button v-if="isAdmin" variant="danger" size="large" @click="confirmRemoval(element)">
                   <sl-icon name="trash"></sl-icon>
                 </sl-button>
-                <sl-button v-if="admin" class="mr-auto" variant="primary" size="large" @click="editItem(element)">
+                <sl-button v-if="isAdmin" class="mr-auto" variant="primary" size="large" @click="editItem(element)">
                   <sl-icon name="pencil"></sl-icon>
                 </sl-button>
                 <sl-button-group>
@@ -513,7 +501,7 @@ export default {
         </template>
       </Sortable>
     </section>
-    <section v-if="admin" class="mb-3xl">
+    <section v-if="isAdmin" class="mb-3xl">
       <h2>
         <sl-icon class="font-xl" name="share"></sl-icon>
         Teile deine Wunschliste
@@ -522,18 +510,25 @@ export default {
       <div class="d-flex align-items-center">
         <pre class="grow-1">{{ publicLink }}</pre>
         <sl-button-group>
-          <sl-tooltip content="Kopiert!" trigger="click" ref="public-copied">
-            <sl-button class="font-xl" size="medium" @click="copyToClipboard(publicLink, tooltipPublic)">
-              <sl-icon name="clipboard-plus"></sl-icon>
-            </sl-button>
-          </sl-tooltip>
+          <sl-copy-button
+            class="copy-button"
+            :value="publicLink"
+            copy-label="Link kopieren"
+            success-label="In die Zwischenablage kopiert!"
+            error-label="Das hat leider nicht geklappt"
+            feedback-duration="1000"
+          >
+            <sl-icon slot="copy-icon" name="clipboard-plus"></sl-icon>
+            <sl-icon slot="success-icon" name="clipboard-check"></sl-icon>
+            <sl-icon slot="error-icon" name="clipboard-x"></sl-icon>
+          </sl-copy-button>
           <sl-button class="font-xl" size="medium" @click="sendEmail(publicLink)">
             <sl-icon name="envelope"></sl-icon>
           </sl-button>
         </sl-button-group>
       </div>
     </section>
-    <section v-if="admin" class="mb-3xl">
+    <section v-if="isAdmin" class="mb-3xl">
       <h2>
         <sl-icon class="font-xl" name="shield-lock"></sl-icon>
         Verwalte deine Wunschliste
@@ -542,11 +537,18 @@ export default {
       Dieser Link sollte nicht geteilt werden!
       <div class="d-flex align-items-center">
         <pre class="grow-1">{{ privateLink }}</pre>
-        <sl-tooltip content="Kopiert!" trigger="click" ref="private-copied">
-          <sl-button class="font-xl" size="medium" @click="copyToClipboard(privateLink, tooltipPrivate)">
-            <sl-icon name="clipboard-plus"></sl-icon>
-          </sl-button>
-        </sl-tooltip>
+        <sl-copy-button
+          class="copy-button"
+          :value="privateLink"
+          copy-label="Link kopieren"
+          success-label="In die Zwischenablage kopiert!"
+          error-label="Das hat leider nicht geklappt"
+          feedback-duration="1000"
+        >
+          <sl-icon slot="copy-icon" name="clipboard-plus"></sl-icon>
+          <sl-icon slot="success-icon" name="clipboard-check"></sl-icon>
+          <sl-icon slot="error-icon" name="clipboard-x"></sl-icon>
+        </sl-copy-button>
       </div>
     </section>
     <section class="content-center font-xs text-gray">
@@ -555,7 +557,7 @@ export default {
     </section>
     <!-- Admin area trigger -->
     <div class="admin p-fixed-top-right">
-      <div v-if="admin" class="menu" @click="drawer.show()">
+      <div v-if="isAdmin" class="menu" @click="drawer.show()">
         <sl-icon class="font-3xl" name="list"></sl-icon>
       </div>
     </div>
@@ -741,5 +743,39 @@ export default {
   display: flex;
   flex-direction: column;
   gap: var(--sl-spacing-2x-large);
+}
+
+.copy-button::part(button) {
+  background-color: var(--sl-color-neutral-0);
+  border-color: var(--sl-input-border-color);
+  height: auto;
+  cursor: pointer !important;
+  min-height: var(--sl-input-height-medium);
+  font-size: var(--sl-button-font-size-medium);
+  line-height: calc(var(--sl-input-height-medium) - var(--sl-input-border-width) * 2);
+  border-top-left-radius: var(--sl-input-border-radius-medium);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  border-style: solid;
+  border-width: var(--sl-input-border-width);
+  font-family: var(--sl-input-font-family);
+  font-weight: var(--sl-font-weight-semibold);
+  text-decoration: none;
+  user-select: none;
+  white-space: nowrap;
+  vertical-align: middle;
+  padding: 0 var(--sl-spacing-medium);
+  transition: var(--sl-transition-x-fast) background-color, var(--sl-transition-x-fast) color, var(--sl-transition-x-fast) border, var(--sl-transition-x-fast) box-shadow;
+  cursor: inherit;
+}
+.copy-button:hover::part(button) {
+  background-color: var(--sl-color-primary-50);
+  border-color: var(--sl-color-primary-300);
+}
+sl-button-group .copy-button::part(button) {
+  border-top-right-radius: 0;
+  border-bottom-right-radius: 0;
 }
 </style>
