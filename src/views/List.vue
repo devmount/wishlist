@@ -1,3 +1,348 @@
+<script lang="ts">
+import { inject, ref } from 'vue';
+import { addToStorage, removeFromStorage } from "@/storage";
+import { Sortable } from "sortablejs-vue3";
+import { SupabaseClient } from '@supabase/supabase-js';
+import { Database } from '@/types/supabase';
+import { SlDialog, SlDrawer, SlTooltip, SlDetails } from '@shoelace-style/shoelace';
+import { List, Item, ItemState, InputMode } from '@/types/global';
+
+// import partials
+import Logo from '@/views/partials/Logo.vue';
+
+export default {
+  name: 'App',
+  components: { Logo, Sortable },
+  setup () {
+    const wishlist = ref<HTMLElement>();
+    const drawer = ref<SlDrawer>();
+    const dialogPurchase = ref<SlDialog>();
+    const dialogReserve = ref<SlDialog>();
+    const dialogDelete = ref<SlDialog>();
+    const tooltipPublic = ref<SlTooltip>();
+    const tooltipPrivate = ref<SlTooltip>();
+
+    const supabase = inject<SupabaseClient<Database>>('supabase');
+
+    return {
+      supabase,
+      wishlist,
+      drawer,
+      dialogPurchase,
+      dialogReserve,
+      dialogDelete,
+      tooltipPublic,
+      tooltipPrivate,
+    };
+  },
+  data: () => ({
+    loading: true,
+    list: null as List,
+    items: [] as Item[],
+    input: {
+      item: {
+        data: {} as Item,
+        mode: InputMode.Insert,
+        target: null as number,
+      },
+      list: {
+        title: '',
+        color: '#0ea5e9',
+        description: '',
+      } as List,
+    },
+    dialog: {
+      item: null as Item,
+    },
+    confirmListDeletion: false,
+  }),
+  async created () {
+    // Initially get all existing items
+    await this.getData();
+
+    // Subscribe to all changes on the lists table and the items table to provide realtime experience
+    this.supabase.channel('room').on(
+      'postgres_changes',
+      { event: '*', schema: '*' },
+      async () => { await this.getData(); }
+    ).subscribe();
+
+    // Init item and list input
+    this.resetItemInput();
+    this.resetListInput();
+    
+    // Set browser title
+    document.title = this.admin ? 'Wishlist - Admin: ' + this.list?.title : 'Wishlist - ' + this.list?.title;
+
+    // Check for existing local storage entry and add if it's not there
+    if (this.admin) {
+      addToStorage(this.list);
+    }
+
+    // Finished loading
+    this.loading = false;
+  },
+  unmounted () {
+    // Unsubscribe from active channels
+    this.supabase.removeAllChannels();
+  },
+  methods: {
+    // Retrieve requested data
+    async getData () {
+      // Query list by route
+      const { data, error } = await this.supabase
+        .from('lists')
+        .select()
+        .eq('slug_public', this.$route.params.public as string);
+      if (!error) {
+        this.list = data[0] ?? null;
+      } else {
+        console.error(error);
+      }
+      
+      // Query corresponding list items
+      if (this.list?.id) {
+        const { data: items, error: fail } = await this.supabase.from('items').select().eq('list', this.list.id)
+        if (!fail) {
+          this.items = items.sort((a,b) => a.weight - b.weight || Number(a.created < b.created));
+        } else {
+          console.error(fail);
+        }
+      }
+    },
+    // edit list
+    async syncList () {
+      if (this.input.list.title) {
+        const { data, error } = await this.supabase
+          .from('lists')
+          .update(this.input.list)
+          .eq('id', this.list?.id )
+          .select();
+        if (!error) {
+          this.list = data[0];
+        } else {
+          console.error(error);
+        }
+        this.drawer.hide();
+      }
+    },
+    // reset list form
+    resetListInput () {
+      this.input.list.title = this.list?.title;
+      this.input.list.color = this.list?.color;
+      this.input.list.description = this.list?.description;
+    },
+    // store new or edit existing item
+    async syncItem () {
+      if (this.input.item.data.title) {
+        // if valid input: get and preprocess item data
+        let i = JSON.parse(JSON.stringify(this.input.item.data));
+        i.links = i.links ? i.links.split('\n').map((l: string) => l.trim()) : [];
+        // check if new or edited item
+        switch (this.input.item.mode) {
+          case InputMode.Insert:
+            i.weight = this.nextWeight();
+            const insertResult = await this.supabase.from('items').insert(i).select()
+            if (!insertResult.error) {
+              this.items.unshift(i);
+            } else {
+              console.error(insertResult.error);
+            }
+            break;
+          case InputMode.Update:
+            const updateResult = await this.supabase.from('items').update(i).eq('id', this.input.item.target).select()
+            if (!updateResult.error) {
+              this.items[this.getItemPosition(i.id)] = i;
+            } else {
+              console.error(updateResult.error);
+            }
+            break;
+          default: break
+        }
+        // reset form
+        this.resetItemInput()
+      }
+    },
+    // edit existing item
+    editItem (item: Item) {
+      let i = JSON.parse(JSON.stringify(item));
+      i.links = item.links ? item.links.join('\n') : '';
+      this.input.item.data = i;
+      this.input.item.mode = InputMode.Update;
+      this.input.item.target = i.id;
+    },
+    // reset item form
+    resetItemInput () {
+      this.input.item.data = JSON.parse(JSON.stringify(this.initItem));
+      this.input.item.mode = InputMode.Insert;
+      this.input.item.target = null;
+    },
+    // open dialog for reservation confirmation
+    confirmReserved (item: Item) {
+      this.dialog.item = item;
+      this.dialogReserve.show();
+    },
+    // set item state to reserved or open and close dialog
+    async toggleReserved (item: Item) {
+      const state = item.state == ItemState.Reserved ? ItemState.Open : ItemState.Reserved;
+      const { data, error } = await this.supabase.from('items').update({ state: state }).eq('id', item.id).select();
+      if (!error) {
+        this.items[this.getItemPosition(data[0].id)].state = state;
+      } else {
+        console.error(error);
+      }
+      this.dialogReserve.hide();
+    },
+    // open dialog for purchase confirmation
+    confirmPurchased (item: Item) {
+      this.dialog.item = item;
+      this.dialogPurchase.show();
+    },
+    // set item state to purchased or open
+    async togglePurchased (item: Item) {
+      const state = item.state == ItemState.Purchased ? ItemState.Open : ItemState.Purchased;
+      const { data, error } = await this.supabase.from('items').update({ state: state }).eq('id', item.id).select()
+      if (!error) {
+        this.items[this.getItemPosition(data[0].id)].state = state;
+      } else {
+        console.error(error);
+      }
+      this.dialogPurchase.hide();
+    },
+    // open dialog for item removal confirmation
+    confirmRemoval (item: Item) {
+      this.dialog.item = item;
+      this.dialogDelete.show();
+    },
+    // delete existing item
+    async deleteItem (item: Item) {
+      const { error } = await this.supabase.from('items').delete().match({ id: item.id });
+      if (!error) {
+        this.items.slice(this.getItemPosition(item.id), 1);
+      } else {
+        console.error(error);
+      }
+      this.dialogDelete.hide();
+    },
+    // find current position of list item with given <id>
+    getItemPosition (id: number) {
+      return this.items.findIndex(i => i.id === id);
+    },
+    // copy given <text> to system clipboard
+    copyToClipboard (text: string, tooltip: SlTooltip) {
+      navigator.clipboard.writeText(text)
+      setTimeout(() => tooltip.hide(), 3000)
+    },
+    // send given text as body content in new email
+    sendEmail (text: string) {
+      window.location.href = "mailto:?subject=Meine Wunschliste: " + this.list?.title + "&body=" + text
+    },
+    // close all other list items if one is shown
+    closeOtherItems (index: number) {
+      [...this.wishlist.querySelectorAll('sl-details')].forEach(
+        (item: SlDetails, position: number) => (item.open = position == index)
+      );
+    },
+    // delete existing item
+    async deleteList () {
+      const deleteResult = await this.supabase.from('lists').delete().eq('id', this.list?.id)
+      if (!deleteResult.error) {
+        removeFromStorage(this.list);
+        this.$router.push({ name: 'start' });
+      } else {
+        console.error(deleteResult.error);
+      }
+    },
+    // Update the order of items
+    async saveOrder (event) {
+      // Locally set the new order
+      const movedItem = this.items.splice(event.oldIndex, 1)[0];
+      this.items.splice(event.newIndex, 0, movedItem);
+      // Now sync the new weights for each item where the weight has changed
+      for (const [i, item] of this.items.entries()) {
+        if (item.weight !== i) {
+          const updateResult = await this.supabase.from('items').update({ weight: i }).eq('id', item.id).select()
+          if (updateResult.error) {
+            console.error(updateResult.error);
+          }
+        }
+      }
+    },
+    // Calculate the maximum existing weight plus one
+    nextWeight () {
+      return Math.max(...this.items.map(i => i.weight)) + 1;
+    },
+    // Extract the hostname from a given url
+    getBaseUrl(url: string) {
+      const obj = new URL(url);
+      return obj.hostname;
+    },
+    // Handle spoiler changes
+    async toggleSpoiler() {
+      this.list.spoiler = !this.list.spoiler;
+      await this.supabase.from('lists').update({ spoiler: this.list.spoiler }).eq('id', this.list.id).select();
+    },
+  },
+  computed: {
+    // initial item object
+    initItem () {
+      return {
+        title: '',
+        price: '',
+        description: '',
+        links: '',
+        list: this.list?.id
+      }
+    },
+    // return base url
+    baseUrl () {
+      return window.location.origin
+    },
+    // return complete public link for sharing
+    publicLink () {
+      return this.baseUrl + '/' + this.$route.params.public
+    },
+    // return complete private link for administration
+    privateLink () {
+      return this.baseUrl + '/' + this.$route.params.public + '/' + this.$route.params.private
+    },
+    // check if admin token is given and correct
+    admin () {
+      return this.$route.params.private && this.list?.slug_private === this.$route.params.private
+    },
+    // check if public token is given and correct
+    visitor () {
+      return this.$route.params.public && this.list?.slug_public === this.$route.params.public && !this.$route.params.private
+    },
+    // approve if something is allowed to be shown
+    allowed () {
+      return this.visitor || this.list?.spoiler
+    },
+    // prived accent color once list color is loaded
+    accent () {
+      return this.list?.color ?? '#000000'
+    },
+    // Check input modes
+    isInputUpdate () {
+      return this.input.item.mode == InputMode.Update;
+    },
+    isInputInsert () {
+      return this.input.item.mode == InputMode.Insert;
+    },
+    // Check item states
+    isItemOpen () {
+      return this.dialog.item.state == ItemState.Open;
+    },
+    isItemReserved () {
+      return this.dialog.item.state == ItemState.Reserved;
+    },
+    isItemPurchased () {
+      return this.dialog.item.state == ItemState.Purchased;
+    },
+  },
+}
+</script>
+
 <template>
   <div v-if="loading">
     <header class="content-center mb-3xl">
@@ -26,7 +371,7 @@
             class="check-input grow-5"
             type="text"
             :value="input.item.data.title"
-            @sl-change="input.item.data.title = $event.target.value"
+            @input="input.item.data.title = $event.target.value"
             placeholder="Titel"
             required
           ></sl-input>
@@ -34,7 +379,7 @@
             class="grow-1"
             type="text"
             :value="input.item.data.price"
-            @sl-change="input.item.data.price = $event.target.value"
+            @input="input.item.data.price = $event.target.value"
             placeholder="Preis (optional)"
           ></sl-input>
         </div>
@@ -42,7 +387,7 @@
           class="grow-1 mb-m"
           type="text"
           :value="input.item.data.description"
-          @sl-change="input.item.data.description = $event.target.value"
+          @input="input.item.data.description = $event.target.value"
           placeholder="Beschreibung (optional)"
           rows="1"
           resize="auto"
@@ -50,21 +395,21 @@
         <sl-textarea
           class="check-input grow-1 mb-m"
           :value="input.item.data.links"
-          @sl-change="input.item.data.links = $event.target.value"
+          @input="input.item.data.links = $event.target.value"
           placeholder="Link Adressen zum Artikel (ein Link pro Zeile)"
           rows="1"
           resize="auto"
         ></sl-textarea>
         <div class="d-flex justify-end gap-m">
-          <sl-button v-if="input.item.mode=='UPDATE'" variant="default" size="large" @click="resetItemInput()">
+          <sl-button v-if="isInputUpdate" variant="default" size="large" @click="resetItemInput()">
             <sl-icon class="font-xl" slot="suffix" name="arrow-return-left"></sl-icon>
             Lieber nicht ändern
           </sl-button>
-          <sl-button v-if="input.item.mode=='UPDATE'" type="submit" variant="primary" size="large">
+          <sl-button v-if="isInputUpdate" type="submit" variant="primary" size="large">
             <sl-icon class="font-xl" slot="suffix" name="pencil"></sl-icon>
             Wunsch anpassen
           </sl-button>
-          <sl-button v-if="input.item.mode=='INSERT'" type="submit" variant="primary" size="large">
+          <sl-button v-if="isInputInsert" type="submit" variant="primary" size="large">
             <sl-icon class="font-xl" slot="suffix" name="plus"></sl-icon>
             Wünschen
           </sl-button>
@@ -165,7 +510,7 @@
         <pre class="grow-1">{{ publicLink }}</pre>
         <sl-button-group>
           <sl-tooltip content="Kopiert!" trigger="click" ref="public-copied">
-            <sl-button class="font-xl" size="medium" @click="copyToClipboard(publicLink, $refs['public-copied'])">
+            <sl-button class="font-xl" size="medium" @click="copyToClipboard(publicLink, tooltipPublic)">
               <sl-icon name="clipboard-plus"></sl-icon>
             </sl-button>
           </sl-tooltip>
@@ -185,7 +530,7 @@
       <div class="d-flex align-items-center">
         <pre class="grow-1">{{ privateLink }}</pre>
         <sl-tooltip content="Kopiert!" trigger="click" ref="private-copied">
-          <sl-button class="font-xl" size="medium" @click="copyToClipboard(privateLink, $refs['private-copied'])">
+          <sl-button class="font-xl" size="medium" @click="copyToClipboard(privateLink, tooltipPrivate)">
             <sl-icon name="clipboard-plus"></sl-icon>
           </sl-button>
         </sl-tooltip>
@@ -197,7 +542,7 @@
     </section>
     <!-- admin area trigger -->
     <div class="admin p-fixed-top-right">
-      <div v-if="admin" class="menu" @click="$refs.drawer.show()">
+      <div v-if="admin" class="menu" @click="drawer.show()">
         <sl-icon class="font-3xl" name="list"></sl-icon>
       </div>
     </div>
@@ -220,7 +565,7 @@
               <sl-color-picker
                 format="hex"
                 :value="input.list.color"
-                @sl-change="input.list.color = $event.target.value"
+                @input="input.list.color = $event.target.value"
               ></sl-color-picker>
             </div>
             <sl-textarea
@@ -240,13 +585,13 @@
       <div>
         <h3>Spoiler</h3>
         <p>Wenn aktiviert, werden alle Reservierungen und Käufe auch in der Verwaltungsansicht der Wunschliste (geheimer Link) angezeigt.</p>
-        <sl-switch @sl-change="list.spoiler = !list.spoiler" v-model="list.spoiler"></sl-switch>
+        <sl-switch @sl-change="toggleSpoiler()" :checked.prop="list.spoiler"></sl-switch>
       </div>
       <div class="danger">
         <h3>Diese Liste kann weg</h3>
         <p>Hier kann die komplette Wunschliste gelöscht werden. <strong>Das kann nicht rückgängig gemacht werden!</strong> Bist du sicher, dass du das willst?</p>
         <form @submit.prevent="deleteList()" class="d-flex-column align-items-start gap-m">
-          <sl-checkbox @sl-change="confirmListDeletion = $event.target.checked">
+          <sl-checkbox @input="confirmListDeletion = $event.target.checked">
             Ja, ich bin mir sicher
           </sl-checkbox>
           <sl-button type="submit" variant="danger" size="large" :disabled="!confirmListDeletion">
@@ -257,63 +602,63 @@
       </div>
     </sl-drawer>
     <!-- dialog: item state handling reservation -->
-    <sl-dialog ref="dialog-reserve">
+    <sl-dialog ref="dialogReserve">
       <div slot="label">
-        <span v-if="dialog.item && dialog.item.state != 'reserved'">Möchtest du reservieren?</span>
-        <span v-if="dialog.item && dialog.item.state == 'reserved'">Möchtest du die Reservierung aufheben?</span>
+        <span v-if="dialog.item && !isItemReserved">Möchtest du reservieren?</span>
+        <span v-if="dialog.item && isItemReserved">Möchtest du die Reservierung aufheben?</span>
       </div>
-      <div v-if="dialog.item && dialog.item.state != 'reserved'">
+      <div v-if="dialog.item && !isItemReserved">
         Damit markierst du den Wunsch «{{ dialog.item.title }}» für jeden sichtbar als reserviert.
       </div>
-      <div v-if="dialog.item && dialog.item.state == 'reserved'">
+      <div v-if="dialog.item && isItemReserved">
         Damit entfernst du die Reservierung für den Wunsch «{{ dialog.item.title }}»
         und er wird für jeden wieder als verfügbar angezeigt.
       </div>
       <div slot="footer">
-        <sl-button variant="default" @click="$refs['dialog-reserve'].hide()" class="mr-s" size="large">
+        <sl-button variant="default" @click="dialogReserve.hide()" class="mr-s" size="large">
           <sl-icon class="font-xl" slot="suffix" name="arrow-return-left"></sl-icon>
           Lieber nicht
         </sl-button>
-        <sl-button v-if="dialog.item && dialog.item.state != 'reserved'" variant="neutral" size="large" @click="toggleReserved(dialog.item)">
+        <sl-button v-if="dialog.item && !isItemReserved" variant="neutral" size="large" @click="toggleReserved(dialog.item)">
           <sl-icon class="font-xl" slot="suffix" name="patch-exclamation"></sl-icon>
           Ja, bitte reservieren
         </sl-button>
-        <sl-button v-if="dialog.item && dialog.item.state == 'reserved'" variant="neutral" size="large" @click="toggleReserved(dialog.item)">
+        <sl-button v-if="dialog.item && isItemReserved" variant="neutral" size="large" @click="toggleReserved(dialog.item)">
           <sl-icon class="font-xl" slot="suffix" name="patch-minus"></sl-icon>
           Ja, Reservierung aufheben
         </sl-button>
       </div>
     </sl-dialog>
     <!-- dialog: item state handling reservation -->
-    <sl-dialog ref="dialog-purchase">
+    <sl-dialog ref="dialogPurchase">
       <div slot="label">
-        <span v-if="dialog.item && dialog.item.state != 'purchased'">Als gekauft markieren?</span>
-        <span v-if="dialog.item && dialog.item.state == 'purchased'">Den Kauf stornieren?</span>
+        <span v-if="dialog.item && !isItemPurchased">Als gekauft markieren?</span>
+        <span v-if="dialog.item && isItemPurchased">Den Kauf stornieren?</span>
       </div>
-      <div v-if="dialog.item && dialog.item.state != 'purchased'">
+      <div v-if="dialog.item && !isItemPurchased">
         Damit markierst du den Wunsch «{{ dialog.item.title }}» für jeden sichtbar als gekauft.
       </div>
-      <div v-if="dialog.item && dialog.item.state == 'purchased'">
+      <div v-if="dialog.item && isItemPurchased">
         Damit ist der Wunsch «{{ dialog.item.title }}» nicht mehr als gekauft markiert
         und er wird für jeden wieder als verfügbar angezeigt.
       </div>
       <div slot="footer">
-        <sl-button variant="default" @click="$refs['dialog-purchase'].hide()" class="mr-s" size="large">
+        <sl-button variant="default" @click="dialogPurchase.hide()" class="mr-s" size="large">
           <sl-icon class="font-xl" slot="suffix" name="arrow-return-left"></sl-icon>
           Lieber nicht
         </sl-button>
-        <sl-button v-if="dialog.item && dialog.item.state != 'purchased'" variant="primary" size="large" @click="togglePurchased(dialog.item)">
+        <sl-button v-if="dialog.item && !isItemPurchased" variant="primary" size="large" @click="togglePurchased(dialog.item)">
           <sl-icon class="font-xl" slot="suffix" name="cart-check"></sl-icon>
           Ja, hab ich gekauft
         </sl-button>
-        <sl-button v-if="dialog.item && dialog.item.state == 'purchased'" variant="primary" size="large" @click="togglePurchased(dialog.item)">
+        <sl-button v-if="dialog.item && isItemPurchased" variant="primary" size="large" @click="togglePurchased(dialog.item)">
           <sl-icon class="font-xl" slot="suffix" name="cart-dash"></sl-icon>
           Ja, der Kauf hat nicht geklappt
         </sl-button>
       </div>
     </sl-dialog>
     <!-- dialog: item removal -->
-    <sl-dialog ref="dialog-delete">
+    <sl-dialog ref="dialogDelete">
       <div slot="label">
         Diesen Wunsch löschen?
       </div>
@@ -321,7 +666,7 @@
         Damit entfernst den Wunsch «{{ dialog.item.title }}». Dieses Aktion kann nicht rückgängig gemacht werden.
       </div>
       <div slot="footer">
-        <sl-button variant="default" @click="$refs['dialog-delete'].hide()" class="mr-s" size="large">
+        <sl-button variant="default" @click="dialogDelete.hide()" class="mr-s" size="large">
           <sl-icon class="font-xl" slot="suffix" name="arrow-return-left"></sl-icon>
           Lieber nicht
         </sl-button>
@@ -344,303 +689,6 @@
     </header>
   </div>
 </template>
-
-<script>
-import { inject } from 'vue';
-import { addToStorage, removeFromStorage } from "@/storage";
-import { Sortable } from "sortablejs-vue3";
-
-// import partials
-import Logo from '@/views/partials/Logo.vue';
-
-export default {
-  name: 'App',
-  components: { Logo, Sortable },
-  setup () {
-    const supabase = inject('supabase');
-    return { supabase };
-  },
-  data: () => ({
-    loading: true,
-    list: null,
-    items: [],
-    // input: {},
-    input: {
-      item: {
-        data: {},
-        mode: '', // 'INSERT' | 'UPDATE'
-        target: null,
-      },
-      list: {
-        title: '',
-        color: '#0ea5e9',
-        description: '',
-      },
-    },
-    dialog: {
-      item: null,
-      action: '' // 'reserve' | 'purchase' | 'delete
-    },
-    confirmListDeletion: false,
-  }),
-  async created () {
-    // Initially get all existing items
-    await this.getData();
-
-    // Subscribe to all changes on the lists table and the items table to provide realtime experience
-    this.supabase.channel('room').on(
-      'postgres_changes',
-      { event: '*', schema: '*' },
-      async () => { await this.getData(); }
-    ).subscribe();
-
-    // Init item and list input
-    this.resetItemInput();
-    this.resetListInput();
-    
-    // Set browser title
-    document.title = this.admin ? 'Wishlist - Admin: ' + this.list?.title : 'Wishlist - ' + this.list?.title;
-
-    // Check for existing local storage entry and add if it's not there
-    if (this.admin) {
-      addToStorage(this.list);
-    }
-
-    // Finished loading
-    this.loading = false;
-  },
-  unmounted () {
-    // Unsubscribe from active channels
-    this.supabase.removeAllChannels();
-  },
-  methods: {
-    // Retrieve requested data
-    async getData () {
-      // Query list by route
-      const { data, error } = await this.supabase.from('lists').select().eq('slug_public', this.$route.params.public);
-      if (!error) {
-        this.list = data[0] ?? null;
-      } else {
-        console.error(error);
-      }
-      
-      // Query corresponding list items
-      if (this.list?.id) {
-        const { data: items, error: fail } = await this.supabase.from('items').select().eq('list', this.list.id)
-        if (!fail) {
-          this.items = items.sort((a,b) => a.weight - b.weight || Number(a.created < b.created));
-        } else {
-          console.error(fail);
-        }
-      }
-    },
-    // edit list
-    async syncList () {
-      if (this.input.list.title) {
-        const { data, error } = await this.supabase
-          .from('lists')
-          .update(this.input.list)
-          .eq('id', this.list?.id )
-          .select();
-        if (!error) {
-          this.list = data[0];
-        } else {
-          console.error(error);
-        }
-        this.$refs.drawer.hide();
-      }
-    },
-    // reset list form
-    resetListInput () {
-      this.input.list.title = this.list?.title;
-      this.input.list.color = this.list?.color;
-      this.input.list.description = this.list?.description;
-    },
-    // store new or edit existing item
-    async syncItem () {
-      if (this.input.item.data.title) {
-        // if valid input: get and preprocess item data
-        let i = JSON.parse(JSON.stringify(this.input.item.data));
-        i.links = i.links ? i.links.split('\n').map(l => l.trim()) : [];
-        // check if new or edited item
-        switch (this.input.item.mode) {
-          case 'INSERT':
-            i.weight = this.nextWeight();
-            const insertResult = await this.supabase.from('items').insert(i).select()
-            if (!insertResult.error) {
-              this.items.unshift(i);
-            } else {
-              console.error(insertResult.error);
-            }
-            break;
-          case 'UPDATE':
-            const updateResult = await this.supabase.from('items').update(i).eq('id', this.input.item.target).select()
-            if (!updateResult.error) {
-              this.items[this.getItemPosition(i.id)] = i;
-            } else {
-              console.error(updateResult.error);
-            }
-            break;
-          default: break
-        }
-        // reset form
-        this.resetItemInput()
-      }
-    },
-    // edit existing item
-    editItem (item) {
-      let i = JSON.parse(JSON.stringify(item))
-      i.links = item.links ? item.links.join('\n') : ''
-      this.input.item.data = i
-      this.input.item.mode = 'UPDATE'
-      this.input.item.target = i.id
-    },
-    // reset item form
-    resetItemInput () {
-      this.input.item.data = JSON.parse(JSON.stringify(this.initItem))
-      this.input.item.mode = 'INSERT'
-      this.input.item.target = null
-    },
-    // open dialog for reservation confirmation
-    confirmReserved (item) {
-      this.dialog.item = item
-      this.dialog.action = 'reserve'
-      this.$refs['dialog-reserve'].show()
-    },
-    // set item state to reserved or open and close dialog
-    async toggleReserved (item) {
-      const state = item.state == 'reserved' ? 'open' : 'reserved'
-      const { data, error } = await this.supabase.from('items').update({ state: state }).eq('id', item.id).select();
-      if (!error) this.items[this.getItemPosition(data[0].id)].state = state
-      else console.error(error)
-      this.$refs['dialog-reserve'].hide()
-    },
-    // open dialog for purchase confirmation
-    confirmPurchased (item) {
-      this.dialog.item = item
-      this.dialog.action = 'purchase'
-      this.$refs['dialog-purchase'].show()
-    },
-    // set item state to purchased or open
-    async togglePurchased (item) {
-      const state = item.state == 'purchased' ? 'open' : 'purchased'
-      const { data, error } = await this.supabase.from('items').update({ state: state }).eq('id', item.id).select()
-      if (!error) this.items[this.getItemPosition(data[0].id)].state = state
-      else console.error(error)
-      this.$refs['dialog-purchase'].hide()
-    },
-    // open dialog for item removal confirmation
-    confirmRemoval (item) {
-      this.dialog.item = item
-      this.dialog.action = 'delete'
-      this.$refs['dialog-delete'].show()
-    },
-    // delete existing item
-    async deleteItem (item) {
-      const deleteResult = await this.supabase.from('items').delete().match({ id: item.id })
-      if (!deleteResult.error) this.items.slice(this.getItemPosition(item.id), 1)
-      else console.error(error)
-      this.$refs['dialog-delete'].hide()
-    },
-    // find current position of list item with given <id>
-    getItemPosition (id) {
-      return this.items.findIndex(i => i.id === id)
-    },
-    // copy given <text> to system clipboard
-    copyToClipboard (text, message) {
-      navigator.clipboard.writeText(text)
-      setTimeout(() => message.hide(), 3000)
-    },
-    // send given text as body content in new email
-    sendEmail (text) {
-      window.location = "mailto:?subject=Meine Wunschliste: " + this.list?.title + "&body=" + text
-    },
-    // close all other list items if one is shown
-    closeOtherItems (index) {
-      [...this.$refs.wishlist.querySelectorAll('sl-details')].map((item, position) => (item.open = position == index))
-    },
-    // delete existing item
-    async deleteList () {
-      const deleteResult = await this.supabase.from('lists').delete().eq('id', this.list?.id)
-      if (!deleteResult.error) {
-        removeFromStorage(this.list);
-        this.$router.push({ name: 'start' });
-      } else {
-        console.error(deleteResult.error);
-      }
-    },
-    // Update the order of items
-    async saveOrder (event) {
-      // Locally set the new order
-      const movedItem = this.items.splice(event.oldIndex, 1)[0];
-      this.items.splice(event.newIndex, 0, movedItem);
-      // Now sync the new weights for each item where the weight has changed
-      for (const [i, item] of this.items.entries()) {
-        if (item.weight !== i) {
-          const updateResult = await this.supabase.from('items').update({ weight: i }).eq('id', item.id).select()
-          if (updateResult.error) {
-            console.error(updateResult.error);
-          }
-        }
-      }
-    },
-    // Calculate the maximum existing weight plus one
-    nextWeight () {
-      return Math.max(...this.items.map(i => i.weight)) + 1;
-    },
-    // Extract the hostname from a given url
-    getBaseUrl(url) {
-      const obj = new URL(url);
-      return obj.hostname;
-    },
-  },
-  computed: {
-    // initial item object
-    initItem () {
-      return {
-        title: '',
-        price: '',
-        description: '',
-        links: '',
-        list: this.list?.id
-      }
-    },
-    // return base url
-    baseUrl () {
-      return window.location.origin
-    },
-    // return complete public link for sharing
-    publicLink () {
-      return this.baseUrl + '/' + this.$route.params.public
-    },
-    // return complete private link for administration
-    privateLink () {
-      return this.baseUrl + '/' + this.$route.params.public + '/' + this.$route.params.private
-    },
-    // check if admin token is given and correct
-    admin () {
-      return this.$route.params.private && this.list?.slug_private === this.$route.params.private
-    },
-    // check if public token is given and correct
-    visitor () {
-      return this.$route.params.public && this.list?.slug_public === this.$route.params.public && !this.$route.params.private
-    },
-    // approve if something is allowed to be shown
-    allowed () {
-      return this.visitor || this.list?.spoiler
-    },
-    // prived accent color once list color is loaded
-    accent () {
-      return this.list?.color ?? '#000000'
-    }
-  },
-  watch: {
-    'list.spoiler': async function (newVal) {
-      await this.supabase.from('lists').update({ spoiler: newVal }).eq('id', this.list?.id).select()
-    }
-  }
-}
-</script>
 
 <style>
 .item::part(header) {

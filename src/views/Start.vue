@@ -1,3 +1,79 @@
+<script lang="ts">
+import { inject } from 'vue';
+import { getAllFromStorage, addToStorage, removeFromStorage } from "@/storage";
+import { SupabaseClient } from '@supabase/supabase-js';
+import { Database } from '@/types/supabase';
+
+// import partials
+import Logo from '@/views/partials/Logo.vue';
+import { List } from '@/types/global';
+
+export default {
+  name: 'App',
+  components: { Logo },
+  setup () {
+    const supabase = inject<SupabaseClient<Database>>('supabase');
+    return { supabase };
+  },
+  data: () => ({
+    input: {
+      title: '',
+      color: '#0ea5e9',
+      description: '',
+    },
+    localLists: [] as List[],
+  }),
+  created () {
+    // Init list overview from local storage
+    this.localLists = getAllFromStorage();
+
+    // Set browser title
+    document.title = 'Wishlist';
+  },
+  methods: {
+    // store new list in database
+    async addList () {
+      if (this.input.title) {
+        const slugPublic = this.generateSlug(10)
+        const slugPrivate = this.generateSlug(16)
+        const { data, error } = await this.supabase.from('lists').insert({
+          'title': this.input.title,
+          'color': this.input.color,
+          'description': this.input.description,
+          'slug_public': slugPublic,
+          'slug_private': slugPrivate,
+        }).select();
+        if (!error) {
+          const obj = addToStorage(data[0]);
+          if (obj) {
+            this.localLists.push(obj);
+          }
+          // workaround for race condition in vue router
+          setTimeout(() => {
+            this.$router.push({ name: 'list', params: { public: slugPublic, private: slugPrivate }})
+          }, 100);
+        }
+      }
+    },
+    // remove list stored at <index> from local list and local storage
+    removeLocalListEntry (index: number) {
+      if (removeFromStorage(this.localLists[index])) {
+        this.localLists.splice(index, 1);
+      }
+    },
+    // get random slug string
+    generateSlug (length: number): string {
+      const chars = '0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ';
+      let result = '';
+      for (let i = length; i > 0; --i) {
+        result += chars[Math.round(Math.random() * (chars.length-1))];
+      }
+      return result;
+    },
+  }
+}
+</script>
+
 <template>
   <header class="content-center">
     <Logo />
@@ -52,11 +128,15 @@
     </h2>
     <p>
       Zur Erinnerung sind hier die von dir angelegten Listen aufgeführt.
-      Diese Einträge sind nur auf diesem Gerät und in diesem Browser sichtbar, du kannst sie löschen, wenn du sie nicht mehr brauchst
-      (die Wunschlisten selbst werden dadurch nicht gelöscht).
+      Diese Einträge sind nur auf diesem Gerät und in diesem Browser sichtbar, du kannst sie löschen, wenn du sie nicht
+      mehr brauchst (die Wunschlisten selbst werden dadurch nicht gelöscht).
     </p>
     <div v-if="localLists.length>0" class="d-grid gap-m three-col">
-      <sl-card v-for="(l, i) in localLists" :key="i" :style="{ background: `linear-gradient(135deg, ${l.color} 0%, ${l.color} 24px, transparent 24px)` }">
+      <sl-card
+        v-for="(l, i) in localLists"
+        :key="i"
+        :style="{ background: `linear-gradient(135deg, ${l.color} 0%, ${l.color} 24px, transparent 24px)` }"
+      >
         <div class="text-overflow-ellipsis">{{ l.title }}</div>
         <div class="font-xs">
           Erstellt <sl-relative-time :date="l.created" lang="de"></sl-relative-time>
@@ -96,78 +176,6 @@
     </div>
   </section>
 </template>
-
-<script>
-import { inject } from 'vue';
-import { getAllFromStorage, addToStorage, removeFromStorage } from "@/storage";
-
-// import partials
-import Logo from '@/views/partials/Logo.vue';
-
-export default {
-  name: 'App',
-  components: { Logo },
-  setup () {
-    const supabase = inject('supabase');
-    return { supabase }
-  },
-  data: () => ({
-    input: {
-      title: '',
-      color: '#0ea5e9',
-      description: '',
-    },
-    localLists: []
-  }),
-  created () {
-    // Init list overview from local storage
-    this.localLists = getAllFromStorage();
-
-    // Set browser title
-    document.title = 'Wishlist';
-  },
-  methods: {
-    // store new list in database
-    async addList () {
-      if (this.input.title) {
-        const slugPublic = this.generateSlug(10)
-        const slugPrivate = this.generateSlug(16)
-        const { data, error } = await this.supabase.from('lists').insert({
-          'title': this.input.title,
-          'color': this.input.color,
-          'description': this.input.description,
-          'slug_public': slugPublic,
-          'slug_private': slugPrivate,
-        }).select()
-        if (!error) {
-          const obj = addToStorage(data[0]);
-          if (obj) {
-            this.localLists.push(obj);
-          }
-          // workaround for race condition in vue router
-          setTimeout(() => {
-            this.$router.push({ name: 'list', params: { public: slugPublic, private: slugPrivate }})
-          }, 100);
-        }
-      }
-    },
-    // remove list stored at <index> from local list and local storage
-    removeLocalListEntry (index) {
-      removeFromStorage(this.localLists[index])
-      this.localLists.splice(index, 1)
-    },
-    // get random slug string
-    generateSlug (length) {
-      const chars = '0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ';
-      let result = '';
-      for (let i = length; i>0; --i) {
-        result += chars[Math.round(Math.random()*(chars.length-1))];
-      }
-      return result;
-    }
-  }
-}
-</script>
 
 <style>
 sl-card {

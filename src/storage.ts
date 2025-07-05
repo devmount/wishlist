@@ -1,14 +1,14 @@
 /**
  * Get all existing lists from local storage. Returns an array.
  */ 
-export const getAllFromStorage = () => {
+export const getAllFromStorage = (): Types.List[] => {
   return JSON.parse(localStorage.wishlists || null) || [];
 };
 
-/**
+/**f
  * Returns list index of found entry, otherwise -1
  */
-export const listIndex = (list) => {
+export const listIndex = (list: Types.List): number => {
   const lists = getAllFromStorage();
   return lists.findIndex(e => e.slug_public == list.slug_public && e.slug_private == list.slug_private);
 };
@@ -16,7 +16,7 @@ export const listIndex = (list) => {
 /**
  * True if list is already stored locally
  */
-export const listExists = (list) => {
+export const listExists = (list: Types.List): boolean => {
   return listIndex(list) >= 0;
 };
 
@@ -24,14 +24,14 @@ export const listExists = (list) => {
  * Store a <list> in local storage with timestamp and slugs
  * Returns the list object if the entry was added otherweise null.
  */
-export const addToStorage = (list) => {
+export const addToStorage = (list: Types.List): Types.List | null => {
   const lists = getAllFromStorage();
   if (list && !listExists(list)) {
     // Remove unwanted properties
     delete list.id;
     // If that list doesn't exist yet, add and save it
     lists.push(list);
-    localStorage.wishlists = JSON.stringify(lists)
+    localStorage.wishlists = JSON.stringify(lists);
     return list;
   }
   return null;
@@ -40,7 +40,7 @@ export const addToStorage = (list) => {
 /**
  * Remove given list from local storage, returns true if deletion happened.
  */
-export const removeFromStorage = (list) => {
+export const removeFromStorage = (list: Types.List): boolean => {
   const lists = getAllFromStorage();
   const index = listIndex(list);
   if (index >= 0) {
