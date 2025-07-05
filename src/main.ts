@@ -1,9 +1,9 @@
-// init app
+// Init app
 import { createApp } from 'vue';
 import App from '@/App.vue';
 const app = createApp(App);
 
-// init router
+// Init router
 import router from '@/router.js';
 app.use(router);
 
@@ -17,5 +17,5 @@ const supabase = createClient<Database>(SUPABASE_URL, SUPABASE_KEY);
 app.provide('supabase', supabase);
 app.provide('version', APP_VERSION);
 
-// ready? let's go!
+// Ready? let's go!
 app.mount('#app');

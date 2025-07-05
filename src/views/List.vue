@@ -1,352 +1,353 @@
-<script lang="ts">
-import { inject, ref } from 'vue';
+<script setup lang="ts">
+import { computed, inject, onMounted, onUnmounted, reactive, ref } from 'vue';
 import { addToStorage, removeFromStorage } from "@/storage";
 import { Sortable } from "sortablejs-vue3";
 import { SupabaseClient } from '@supabase/supabase-js';
 import { Database } from '@/types/supabase';
-import { SlDialog, SlDrawer, SlTooltip, SlDetails } from '@shoelace-style/shoelace';
+import { SlDialog, SlDrawer, SlDetails } from '@shoelace-style/shoelace';
 import { List, Item, ItemState, InputMode } from '@/types/global';
+import { useRoute, useRouter } from 'vue-router';
 
-// import partials
+// Import partials
 import Logo from '@/views/partials/Logo.vue';
 
-export default {
-  name: 'App',
-  components: { Logo, Sortable },
-  setup () {
-    const wishlist = ref<HTMLElement>();
-    const drawer = ref<SlDrawer>();
-    const dialogPurchase = ref<SlDialog>();
-    const dialogReserve = ref<SlDialog>();
-    const dialogDelete = ref<SlDialog>();
-    const tooltipPublic = ref<SlTooltip>();
-    const tooltipPrivate = ref<SlTooltip>();
+// References
+const wishlist = ref<HTMLElement>();
+const drawer = ref<SlDrawer>();
+const dialogPurchase = ref<SlDialog>();
+const dialogReserve = ref<SlDialog>();
+const dialogDelete = ref<SlDialog>();
 
-    const supabase = inject<SupabaseClient<Database>>('supabase');
+const supabase = inject<SupabaseClient<Database>>('supabase');
+const route = useRoute();
+const router = useRouter();
 
-    return {
-      supabase,
-      wishlist,
-      drawer,
-      dialogPurchase,
-      dialogReserve,
-      dialogDelete,
-      tooltipPublic,
-      tooltipPrivate,
-    };
+const loading = ref(true);
+const list = ref<List>(null);
+const items = ref<Item[]>([]);
+const input = reactive({
+  item: {
+    data: {} as Item,
+    mode: InputMode.Insert,
+    target: null as number,
   },
-  data: () => ({
-    loading: true,
-    list: null as List,
-    items: [] as Item[],
-    input: {
-      item: {
-        data: {} as Item,
-        mode: InputMode.Insert,
-        target: null as number,
-      },
-      list: {
-        title: '',
-        color: '#0ea5e9',
-        description: '',
-      } as List,
-    },
-    dialog: {
-      item: null as Item,
-    },
-    confirmListDeletion: false,
-  }),
-  async created () {
-    // Initially get all existing items
-    await this.getData();
+  list: {
+    title: '',
+    color: '#0ea5e9',
+    description: '',
+  } as List,
+});
+const dialog = reactive({
+  item: null as Item,
+});
+const confirmListDeletion = ref(false);
 
-    // Subscribe to all changes on the lists table and the items table to provide realtime experience
-    this.supabase.channel('room').on(
-      'postgres_changes',
-      { event: '*', schema: '*' },
-      async () => { await this.getData(); }
-    ).subscribe();
+const initItem = computed(() => ({
+  title: '',
+  price: '',
+  description: '',
+  links: '',
+  list: list.value?.id
+}));
 
-    // Init item and list input
-    this.resetItemInput();
-    this.resetListInput();
-    
-    // Set browser title
-    document.title = this.admin ? 'Wishlist - Admin: ' + this.list?.title : 'Wishlist - ' + this.list?.title;
+// Check if admin token is given and correct
+const isAdmin = computed(() => {
+  return route.params.private && list.value?.slug_private === route.params.private
+});
 
-    // Check for existing local storage entry and add if it's not there
-    if (this.admin) {
-      addToStorage(this.list);
+onMounted(async () => {
+  // Initially get all existing items
+  await getData();
+
+  // Subscribe to all changes on the lists table and the items table to provide realtime experience
+  supabase.channel('room').on(
+    'postgres_changes',
+    { event: '*', schema: '*' },
+    async () => { await getData(); }
+  ).subscribe();
+
+  // Init item and list input
+  resetItemInput();
+  resetListInput();
+  
+  // Set browser title
+  document.title = isAdmin.value ? 'Wishlist - Admin: ' + list.value?.title : 'Wishlist - ' + list.value?.title;
+
+  // Check for existing local storage entry and add if it's not there
+  if (isAdmin.value) {
+    addToStorage(list.value);
+  }
+
+  // Finished loading
+  loading.value = false;
+});
+
+onUnmounted(() => {
+  // Unsubscribe from active channels
+  supabase.removeAllChannels();
+});
+
+// Retrieve requested data
+const getData = async () => {
+  // Query list by route
+  const { data, error } = await supabase
+    .from('lists')
+    .select()
+    .eq('slug_public', route.params.public as string);
+  if (!error) {
+    list.value = data[0] ?? null;
+  } else {
+    console.error(error);
+  }
+  
+  // Query corresponding list items
+  if (list.value?.id) {
+    const { data: records, error: fail } = await supabase.from('items').select().eq('list', list.value.id)
+    if (!fail) {
+      items.value = records.sort((a,b) => a.weight - b.weight || Number(a.created < b.created));
+    } else {
+      console.error(fail);
     }
+  }
+};
 
-    // Finished loading
-    this.loading = false;
-  },
-  unmounted () {
-    // Unsubscribe from active channels
-    this.supabase.removeAllChannels();
-  },
-  methods: {
-    // Retrieve requested data
-    async getData () {
-      // Query list by route
-      const { data, error } = await this.supabase
-        .from('lists')
-        .select()
-        .eq('slug_public', this.$route.params.public as string);
-      if (!error) {
-        this.list = data[0] ?? null;
-      } else {
-        console.error(error);
-      }
-      
-      // Query corresponding list items
-      if (this.list?.id) {
-        const { data: items, error: fail } = await this.supabase.from('items').select().eq('list', this.list.id)
-        if (!fail) {
-          this.items = items.sort((a,b) => a.weight - b.weight || Number(a.created < b.created));
+// Save list
+const syncList = async () => {
+  if (input.list.title) {
+    const { data, error } = await supabase
+      .from('lists')
+      .update(input.list)
+      .eq('id', list.value?.id )
+      .select();
+    if (!error) {
+      list.value = data[0];
+    } else {
+      console.error(error);
+    }
+    drawer.value.hide();
+  }
+};
+
+// Reset list form
+const resetListInput = () => {
+  input.list.title = list.value?.title;
+  input.list.color = list.value?.color;
+  input.list.description = list.value?.description;
+};
+
+// Calculate the maximum existing weight plus one
+const nextWeight = () => {
+  return Math.max(...items.value.map(i => i.weight)) + 1;
+};
+
+// Store new or edit existing item
+const syncItem = async () => {
+  if (input.item.data.title) {
+    // If valid input: get and preprocess item data
+    let i = JSON.parse(JSON.stringify(input.item.data));
+    i.links = i.links ? i.links.split('\n').map((l: string) => l.trim()) : [];
+    // Check if new or edited item
+    switch (input.item.mode) {
+      case InputMode.Insert:
+        i.weight = nextWeight();
+        const insertResult = await supabase.from('items').insert(i).select()
+        if (!insertResult.error) {
+          items.value.unshift(i);
         } else {
-          console.error(fail);
+          console.error(insertResult.error);
         }
-      }
-    },
-    // edit list
-    async syncList () {
-      if (this.input.list.title) {
-        const { data, error } = await this.supabase
-          .from('lists')
-          .update(this.input.list)
-          .eq('id', this.list?.id )
-          .select();
-        if (!error) {
-          this.list = data[0];
+        break;
+      case InputMode.Update:
+        const updateResult = await supabase.from('items').update(i).eq('id', input.item.target).select()
+        if (!updateResult.error) {
+          items.value[getItemPosition(i.id)] = i;
         } else {
-          console.error(error);
+          console.error(updateResult.error);
         }
-        this.drawer.hide();
+        break;
+      default: break
+    }
+    // Reset form
+    resetItemInput()
+  }
+};
+
+// Edit existing item
+const editItem = (item: Item) => {
+  let i = JSON.parse(JSON.stringify(item));
+  i.links = item.links ? item.links.join('\n') : '';
+  input.item.data = i;
+  input.item.mode = InputMode.Update;
+  input.item.target = i.id;
+};
+
+// Reset item form
+const resetItemInput = () => {
+  input.item.data = JSON.parse(JSON.stringify(initItem.value));
+  input.item.mode = InputMode.Insert;
+  input.item.target = null;
+};
+
+// Open dialog for reservation confirmation
+const confirmReserved = (item: Item) => {
+  dialog.item = item;
+  dialogReserve.value.show();
+};
+
+// Find current position of list item with given <id>
+const getItemPosition = (id: number) => {
+  return items.value.findIndex(i => i.id === id);
+};
+
+// Set item state to reserved or open and close dialog
+const toggleReserved = async (item: Item) => {
+  const state = item.state == ItemState.Reserved ? ItemState.Open : ItemState.Reserved;
+  const { data, error } = await supabase.from('items').update({ state: state }).eq('id', item.id).select();
+  if (!error) {
+    items.value[getItemPosition(data[0].id)].state = state;
+  } else {
+    console.error(error);
+  }
+  dialogReserve.value.hide();
+};
+
+// Open dialog for purchase confirmation
+const confirmPurchased = (item: Item) => {
+  dialog.item = item;
+  dialogPurchase.value.show();
+};
+
+// Set item state to purchased or open
+const togglePurchased = async (item: Item) => {
+  const state = item.state == ItemState.Purchased ? ItemState.Open : ItemState.Purchased;
+  const { data, error } = await supabase.from('items').update({ state: state }).eq('id', item.id).select()
+  if (!error) {
+    items.value[getItemPosition(data[0].id)].state = state;
+  } else {
+    console.error(error);
+  }
+  dialogPurchase.value.hide();
+};
+
+// Open dialog for item removal confirmation
+const confirmRemoval = (item: Item) => {
+  dialog.item = item;
+  dialogDelete.value.show();
+};
+
+// Delete existing item
+const deleteItem = async (item: Item) => {
+  const { error } = await supabase.from('items').delete().match({ id: item.id });
+  if (!error) {
+    items.value.slice(getItemPosition(item.id), 1);
+  } else {
+    console.error(error);
+  }
+  dialogDelete.value.hide();
+};
+
+// Send given text as body content in new email
+const sendEmail = (text: string) => {
+  window.location.href = "mailto:?subject=Meine Wunschliste: " + list.value?.title + "&body=" + text;
+};
+
+// Close all other list items if one is shown
+const closeOtherItems = (index: number) => {
+  [...wishlist.value.querySelectorAll('sl-details')].forEach(
+    (item: SlDetails, position: number) => (item.open = position == index)
+  );
+};
+
+// Delete existing item
+const deleteList = async () => {
+  const deleteResult = await supabase.from('lists').delete().eq('id', list.value?.id)
+  if (!deleteResult.error) {
+    removeFromStorage(list.value);
+    router.push({ name: 'start' });
+  } else {
+    console.error(deleteResult.error);
+  }
+};
+
+// Update the order of items
+const saveOrder = async (event) => {
+  // Locally set the new order
+  const movedItem = items.value.splice(event.oldIndex, 1)[0];
+  items.value.splice(event.newIndex, 0, movedItem);
+  // Now sync the new weights for each item where the weight has changed
+  for (const [i, item] of items.value.entries()) {
+    if (item.weight !== i) {
+      const updateResult = await supabase.from('items').update({ weight: i }).eq('id', item.id).select()
+      if (updateResult.error) {
+        console.error(updateResult.error);
       }
-    },
-    // reset list form
-    resetListInput () {
-      this.input.list.title = this.list?.title;
-      this.input.list.color = this.list?.color;
-      this.input.list.description = this.list?.description;
-    },
-    // store new or edit existing item
-    async syncItem () {
-      if (this.input.item.data.title) {
-        // if valid input: get and preprocess item data
-        let i = JSON.parse(JSON.stringify(this.input.item.data));
-        i.links = i.links ? i.links.split('\n').map((l: string) => l.trim()) : [];
-        // check if new or edited item
-        switch (this.input.item.mode) {
-          case InputMode.Insert:
-            i.weight = this.nextWeight();
-            const insertResult = await this.supabase.from('items').insert(i).select()
-            if (!insertResult.error) {
-              this.items.unshift(i);
-            } else {
-              console.error(insertResult.error);
-            }
-            break;
-          case InputMode.Update:
-            const updateResult = await this.supabase.from('items').update(i).eq('id', this.input.item.target).select()
-            if (!updateResult.error) {
-              this.items[this.getItemPosition(i.id)] = i;
-            } else {
-              console.error(updateResult.error);
-            }
-            break;
-          default: break
-        }
-        // reset form
-        this.resetItemInput()
-      }
-    },
-    // edit existing item
-    editItem (item: Item) {
-      let i = JSON.parse(JSON.stringify(item));
-      i.links = item.links ? item.links.join('\n') : '';
-      this.input.item.data = i;
-      this.input.item.mode = InputMode.Update;
-      this.input.item.target = i.id;
-    },
-    // reset item form
-    resetItemInput () {
-      this.input.item.data = JSON.parse(JSON.stringify(this.initItem));
-      this.input.item.mode = InputMode.Insert;
-      this.input.item.target = null;
-    },
-    // open dialog for reservation confirmation
-    confirmReserved (item: Item) {
-      this.dialog.item = item;
-      this.dialogReserve.show();
-    },
-    // set item state to reserved or open and close dialog
-    async toggleReserved (item: Item) {
-      const state = item.state == ItemState.Reserved ? ItemState.Open : ItemState.Reserved;
-      const { data, error } = await this.supabase.from('items').update({ state: state }).eq('id', item.id).select();
-      if (!error) {
-        this.items[this.getItemPosition(data[0].id)].state = state;
-      } else {
-        console.error(error);
-      }
-      this.dialogReserve.hide();
-    },
-    // open dialog for purchase confirmation
-    confirmPurchased (item: Item) {
-      this.dialog.item = item;
-      this.dialogPurchase.show();
-    },
-    // set item state to purchased or open
-    async togglePurchased (item: Item) {
-      const state = item.state == ItemState.Purchased ? ItemState.Open : ItemState.Purchased;
-      const { data, error } = await this.supabase.from('items').update({ state: state }).eq('id', item.id).select()
-      if (!error) {
-        this.items[this.getItemPosition(data[0].id)].state = state;
-      } else {
-        console.error(error);
-      }
-      this.dialogPurchase.hide();
-    },
-    // open dialog for item removal confirmation
-    confirmRemoval (item: Item) {
-      this.dialog.item = item;
-      this.dialogDelete.show();
-    },
-    // delete existing item
-    async deleteItem (item: Item) {
-      const { error } = await this.supabase.from('items').delete().match({ id: item.id });
-      if (!error) {
-        this.items.slice(this.getItemPosition(item.id), 1);
-      } else {
-        console.error(error);
-      }
-      this.dialogDelete.hide();
-    },
-    // find current position of list item with given <id>
-    getItemPosition (id: number) {
-      return this.items.findIndex(i => i.id === id);
-    },
-    // copy given <text> to system clipboard
-    copyToClipboard (text: string, tooltip: SlTooltip) {
-      navigator.clipboard.writeText(text)
-      setTimeout(() => tooltip.hide(), 3000)
-    },
-    // send given text as body content in new email
-    sendEmail (text: string) {
-      window.location.href = "mailto:?subject=Meine Wunschliste: " + this.list?.title + "&body=" + text
-    },
-    // close all other list items if one is shown
-    closeOtherItems (index: number) {
-      [...this.wishlist.querySelectorAll('sl-details')].forEach(
-        (item: SlDetails, position: number) => (item.open = position == index)
-      );
-    },
-    // delete existing item
-    async deleteList () {
-      const deleteResult = await this.supabase.from('lists').delete().eq('id', this.list?.id)
-      if (!deleteResult.error) {
-        removeFromStorage(this.list);
-        this.$router.push({ name: 'start' });
-      } else {
-        console.error(deleteResult.error);
-      }
-    },
-    // Update the order of items
-    async saveOrder (event) {
-      // Locally set the new order
-      const movedItem = this.items.splice(event.oldIndex, 1)[0];
-      this.items.splice(event.newIndex, 0, movedItem);
-      // Now sync the new weights for each item where the weight has changed
-      for (const [i, item] of this.items.entries()) {
-        if (item.weight !== i) {
-          const updateResult = await this.supabase.from('items').update({ weight: i }).eq('id', item.id).select()
-          if (updateResult.error) {
-            console.error(updateResult.error);
-          }
-        }
-      }
-    },
-    // Calculate the maximum existing weight plus one
-    nextWeight () {
-      return Math.max(...this.items.map(i => i.weight)) + 1;
-    },
-    // Extract the hostname from a given url
-    getBaseUrl(url: string) {
-      const obj = new URL(url);
-      return obj.hostname;
-    },
-    // Handle spoiler changes
-    async toggleSpoiler() {
-      this.list.spoiler = !this.list.spoiler;
-      await this.supabase.from('lists').update({ spoiler: this.list.spoiler }).eq('id', this.list.id).select();
-    },
-  },
-  computed: {
-    // initial item object
-    initItem () {
-      return {
-        title: '',
-        price: '',
-        description: '',
-        links: '',
-        list: this.list?.id
-      }
-    },
-    // return base url
-    baseUrl () {
-      return window.location.origin
-    },
-    // return complete public link for sharing
-    publicLink () {
-      return this.baseUrl + '/' + this.$route.params.public
-    },
-    // return complete private link for administration
-    privateLink () {
-      return this.baseUrl + '/' + this.$route.params.public + '/' + this.$route.params.private
-    },
-    // check if admin token is given and correct
-    admin () {
-      return this.$route.params.private && this.list?.slug_private === this.$route.params.private
-    },
-    // check if public token is given and correct
-    visitor () {
-      return this.$route.params.public && this.list?.slug_public === this.$route.params.public && !this.$route.params.private
-    },
-    // approve if something is allowed to be shown
-    allowed () {
-      return this.visitor || this.list?.spoiler
-    },
-    // prived accent color once list color is loaded
-    accent () {
-      return this.list?.color ?? '#000000'
-    },
-    // Check input modes
-    isInputUpdate () {
-      return this.input.item.mode == InputMode.Update;
-    },
-    isInputInsert () {
-      return this.input.item.mode == InputMode.Insert;
-    },
-    // Check item states
-    isItemOpen () {
-      return this.dialog.item.state == ItemState.Open;
-    },
-    isItemReserved () {
-      return this.dialog.item.state == ItemState.Reserved;
-    },
-    isItemPurchased () {
-      return this.dialog.item.state == ItemState.Purchased;
-    },
-  },
-}
+    }
+  }
+};
+
+// Extract the hostname from a given url
+const getBaseUrl = (url: string) => {
+  const obj = new URL(url);
+  return obj.hostname;
+};
+
+// Handle spoiler changes
+const toggleSpoiler = async () => {
+  list.value.spoiler = !list.value.spoiler;
+  await supabase.from('lists').update({ spoiler: list.value.spoiler }).eq('id', list.value.id).select();
+};
+
+// Return base url
+const baseUrl =  computed(() => {
+  return window.location.origin
+});
+
+// Return complete public link for sharing
+const publicLink =  computed(() => {
+  return baseUrl.value + '/' + route.params.public
+});
+
+// Return complete private link for administration
+const privateLink =  computed(() => {
+  return baseUrl.value + '/' + route.params.public + '/' + route.params.private
+});
+
+// Check if public token is given and correct
+const visitor =  computed(() => {
+  return route.params.public && list.value?.slug_public === route.params.public && !route.params.private
+});
+
+// Approve if something is allowed to be shown
+const allowed =  computed(() => {
+  return visitor.value || list.value?.spoiler
+});
+
+// Prived accent color once list color is loaded
+const accent =  computed(() => {
+  return list.value?.color ?? '#000000'
+});
+
+// Check input modes
+const isInputUpdate =  computed(() => {
+  return input.item.mode == InputMode.Update;
+});
+const isInputInsert =  computed(() => {
+  return input.item.mode == InputMode.Insert;
+});
+
+// Check item states
+const isItemReserved =  computed(() => {
+  return dialog.item.state == ItemState.Reserved;
+});
+const isItemPurchased =  computed(() => {
+  return dialog.item.state == ItemState.Purchased;
+});
 </script>
 
 <template>
   <div v-if="loading">
     <header class="content-center mb-3xl">
-      <Logo @click="$router.push({ name: 'start' })" class="c-pointer" />
+      <Logo @click="router.push({ name: 'start' })" class="c-pointer" />
       <div class="mt-2xl">
         <sl-spinner class="font-3xl"></sl-spinner>
       </div>
@@ -354,12 +355,12 @@ export default {
   </div>
   <div v-else-if="list">
     <header class="content-center mb-3xl">
-      <Logo @click="$router.push({ name: 'start' })" :style="{ color: accent }" class="c-pointer" />
+      <Logo @click="router.push({ name: 'start' })" :style="{ color: accent }" class="c-pointer" />
       <h1>{{ list.title }}</h1>
       <hr :style="{ background: accent }" /> 
       <p class="pre-line">{{ list.description }}</p>
     </header>
-    <section v-if="admin" class="mb-3xl">
+    <section v-if="isAdmin" class="mb-3xl">
       <h2>
         <sl-icon class="font-xl" name="bag-plus"></sl-icon>
         Füge einen Wunsch hinzu
@@ -426,7 +427,7 @@ export default {
         <template #item="{ element, index }">
           <div class="draggable d-flex align-items-center">
             <sl-icon
-              v-if="admin"
+              v-if="isAdmin && items.length > 1"
               name="chevron-bar-expand"
               class="icon-handle c-pointer p-s pl-xs font-xl shrink-0"
             ></sl-icon>
@@ -436,7 +437,7 @@ export default {
               :purchased="element.state == 'purchased' && allowed"
               @sl-show="closeOtherItems(index)"
             >
-              <!-- item title and flag -->
+              <!-- Item title and flag -->
               <header slot="summary" class="d-flex align-items-center gap-m width-full">
                 <sl-icon v-if="element.state == 'purchased' && allowed" name="check-circle" class="font-xl shrink-0"></sl-icon>
                 <sl-icon v-else-if="element.state == 'reserved' && allowed" name="exclamation-circle" class="font-xl"></sl-icon>
@@ -449,12 +450,12 @@ export default {
                   {{ element.price }}
                 </div>
               </header>
-              <!-- item information -->
+              <!-- Item information -->
               <main class="d-flex-column gap-m mb-m">
                 <div v-if="element.description" class="pre-line">{{ element.description }}</div>
                 <div v-if="element.links?.length">
                   <div>Hier kann man das kaufen:</div>
-                  <a v-for="(l, i) in element.links" :key="l" class="d-flex align-items-center" :href="l" target="_blank">
+                  <a v-for="l in element.links" :key="l" class="d-flex align-items-center" :href="l" target="_blank">
                     <sl-icon name="link-45deg" class="shrink-0 font-l mt-3xs mr-xs"></sl-icon>
                     <span class="text-overflow-ellipsis">{{ getBaseUrl(l) }}</span>
                   </a>
@@ -468,12 +469,12 @@ export default {
                   Letzte Aktivität <sl-relative-time :date="element.modified" lang="de"></sl-relative-time>
                 </div>
               </main>
-              <!-- flag and manage item -->
+              <!-- Flag and manage item -->
               <footer class="d-flex justify-end flex-wrap gap-m">
-                <sl-button v-if="admin" variant="danger" size="large" @click="confirmRemoval(element)">
+                <sl-button v-if="isAdmin" variant="danger" size="large" @click="confirmRemoval(element)">
                   <sl-icon name="trash"></sl-icon>
                 </sl-button>
-                <sl-button v-if="admin" class="mr-auto" variant="primary" size="large" @click="editItem(element)">
+                <sl-button v-if="isAdmin" class="mr-auto" variant="primary" size="large" @click="editItem(element)">
                   <sl-icon name="pencil"></sl-icon>
                 </sl-button>
                 <sl-button-group>
@@ -500,7 +501,7 @@ export default {
         </template>
       </Sortable>
     </section>
-    <section v-if="admin" class="mb-3xl">
+    <section v-if="isAdmin" class="mb-3xl">
       <h2>
         <sl-icon class="font-xl" name="share"></sl-icon>
         Teile deine Wunschliste
@@ -509,18 +510,25 @@ export default {
       <div class="d-flex align-items-center">
         <pre class="grow-1">{{ publicLink }}</pre>
         <sl-button-group>
-          <sl-tooltip content="Kopiert!" trigger="click" ref="public-copied">
-            <sl-button class="font-xl" size="medium" @click="copyToClipboard(publicLink, tooltipPublic)">
-              <sl-icon name="clipboard-plus"></sl-icon>
-            </sl-button>
-          </sl-tooltip>
+          <sl-copy-button
+            class="copy-button"
+            :value="publicLink"
+            copy-label="Link kopieren"
+            success-label="In die Zwischenablage kopiert!"
+            error-label="Das hat leider nicht geklappt"
+            feedback-duration="1000"
+          >
+            <sl-icon slot="copy-icon" name="clipboard-plus"></sl-icon>
+            <sl-icon slot="success-icon" name="clipboard-check"></sl-icon>
+            <sl-icon slot="error-icon" name="clipboard-x"></sl-icon>
+          </sl-copy-button>
           <sl-button class="font-xl" size="medium" @click="sendEmail(publicLink)">
             <sl-icon name="envelope"></sl-icon>
           </sl-button>
         </sl-button-group>
       </div>
     </section>
-    <section v-if="admin" class="mb-3xl">
+    <section v-if="isAdmin" class="mb-3xl">
       <h2>
         <sl-icon class="font-xl" name="shield-lock"></sl-icon>
         Verwalte deine Wunschliste
@@ -529,24 +537,31 @@ export default {
       Dieser Link sollte nicht geteilt werden!
       <div class="d-flex align-items-center">
         <pre class="grow-1">{{ privateLink }}</pre>
-        <sl-tooltip content="Kopiert!" trigger="click" ref="private-copied">
-          <sl-button class="font-xl" size="medium" @click="copyToClipboard(privateLink, tooltipPrivate)">
-            <sl-icon name="clipboard-plus"></sl-icon>
-          </sl-button>
-        </sl-tooltip>
+        <sl-copy-button
+          class="copy-button"
+          :value="privateLink"
+          copy-label="Link kopieren"
+          success-label="In die Zwischenablage kopiert!"
+          error-label="Das hat leider nicht geklappt"
+          feedback-duration="1000"
+        >
+          <sl-icon slot="copy-icon" name="clipboard-plus"></sl-icon>
+          <sl-icon slot="success-icon" name="clipboard-check"></sl-icon>
+          <sl-icon slot="error-icon" name="clipboard-x"></sl-icon>
+        </sl-copy-button>
       </div>
     </section>
     <section class="content-center font-xs text-gray">
       Diese Wunschliste wurde <sl-relative-time :date="list.created" lang="de"></sl-relative-time>
       am <sl-format-date :date="list.created" month="long" day="numeric" year="numeric" lang="de"></sl-format-date> erstellt
     </section>
-    <!-- admin area trigger -->
+    <!-- Admin area trigger -->
     <div class="admin p-fixed-top-right">
-      <div v-if="admin" class="menu" @click="drawer.show()">
+      <div v-if="isAdmin" class="menu" @click="drawer.show()">
         <sl-icon class="font-3xl" name="list"></sl-icon>
       </div>
     </div>
-    <!-- admin area for list -->
+    <!-- Admin area for list -->
     <sl-drawer ref="drawer" label="Administration" class="admin-drawer">
       <div>
         <h3>Bearbeite deine Wunschliste</h3>
@@ -601,7 +616,7 @@ export default {
         </form>
       </div>
     </sl-drawer>
-    <!-- dialog: item state handling reservation -->
+    <!-- Dialog: item state handling reservation -->
     <sl-dialog ref="dialogReserve">
       <div slot="label">
         <span v-if="dialog.item && !isItemReserved">Möchtest du reservieren?</span>
@@ -629,7 +644,7 @@ export default {
         </sl-button>
       </div>
     </sl-dialog>
-    <!-- dialog: item state handling reservation -->
+    <!-- Dialog: item state handling reservation -->
     <sl-dialog ref="dialogPurchase">
       <div slot="label">
         <span v-if="dialog.item && !isItemPurchased">Als gekauft markieren?</span>
@@ -657,7 +672,7 @@ export default {
         </sl-button>
       </div>
     </sl-dialog>
-    <!-- dialog: item removal -->
+    <!-- Dialog: item removal -->
     <sl-dialog ref="dialogDelete">
       <div slot="label">
         Diesen Wunsch löschen?
@@ -728,5 +743,39 @@ export default {
   display: flex;
   flex-direction: column;
   gap: var(--sl-spacing-2x-large);
+}
+
+.copy-button::part(button) {
+  background-color: var(--sl-color-neutral-0);
+  border-color: var(--sl-input-border-color);
+  height: auto;
+  cursor: pointer !important;
+  min-height: var(--sl-input-height-medium);
+  font-size: var(--sl-button-font-size-medium);
+  line-height: calc(var(--sl-input-height-medium) - var(--sl-input-border-width) * 2);
+  border-top-left-radius: var(--sl-input-border-radius-medium);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  border-style: solid;
+  border-width: var(--sl-input-border-width);
+  font-family: var(--sl-input-font-family);
+  font-weight: var(--sl-font-weight-semibold);
+  text-decoration: none;
+  user-select: none;
+  white-space: nowrap;
+  vertical-align: middle;
+  padding: 0 var(--sl-spacing-medium);
+  transition: var(--sl-transition-x-fast) background-color, var(--sl-transition-x-fast) color, var(--sl-transition-x-fast) border, var(--sl-transition-x-fast) box-shadow;
+  cursor: inherit;
+}
+.copy-button:hover::part(button) {
+  background-color: var(--sl-color-primary-50);
+  border-color: var(--sl-color-primary-300);
+}
+sl-button-group .copy-button::part(button) {
+  border-top-right-radius: 0;
+  border-bottom-right-radius: 0;
 }
 </style>
