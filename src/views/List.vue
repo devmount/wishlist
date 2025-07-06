@@ -5,7 +5,7 @@ import { Sortable } from "sortablejs-vue3";
 import { SupabaseClient } from '@supabase/supabase-js';
 import { Database } from '@/types/supabase';
 import { SlDialog, SlDetails } from '@shoelace-style/shoelace';
-import { List, Item, ItemState, InputMode } from '@/types/global';
+import { List, Item, InputMode } from '@/types/global';
 import { useRoute, useRouter } from 'vue-router';
 import { notify } from '@/utils';
 
@@ -15,6 +15,7 @@ import ItemCard from '@/components/ItemCard.vue';
 import AdminDrawer from '@/components/AdminDrawer.vue';
 import ReserveDialog from '@/components/ReserveDialog.vue';
 import PurchaseDialog from '@/components/PurchaseDialog.vue';
+import DeleteDialog from '@/components/DeleteDialog.vue';
 
 // References
 const wishlist = ref<HTMLElement>();
@@ -37,9 +38,7 @@ const input = reactive({
     target: null as number,
   },
 });
-const dialog = reactive({
-  item: null as Item,
-});
+const dialogItem = ref<Item>(null);
 
 const initItem = computed(() => ({
   title: '',
@@ -169,7 +168,7 @@ const resetItemInput = () => {
 
 // Open dialog for reservation confirmation
 const confirmReserved = (item: Item) => {
-  dialog.item = item;
+  dialogItem.value = item;
   dialogReserve.value.show();
 };
 
@@ -180,26 +179,14 @@ const getItemPosition = (id: number) => {
 
 // Open dialog for purchase confirmation
 const confirmPurchased = (item: Item) => {
-  dialog.item = item;
+  dialogItem.value = item;
   dialogPurchase.value.show();
 };
 
 // Open dialog for item removal confirmation
 const confirmRemoval = (item: Item) => {
-  dialog.item = item;
+  dialogItem.value = item;
   dialogDelete.value.show();
-};
-
-// Delete existing item
-const deleteItem = async (item: Item) => {
-  const { error } = await supabase.from('items').delete().match({ id: item.id });
-  if (!error) {
-    items.value.slice(getItemPosition(item.id), 1);
-  } else {
-    console.error(error);
-    notify('Der Wunsch konnte nicht gelöscht werden!', 'danger');
-  }
-  dialogDelete.value.hide();
 };
 
 // Send given text as body content in new email
@@ -446,30 +433,13 @@ const isInputInsert = computed(() => {
     <admin-drawer ref="drawer" :list="list" />
 
     <!-- Dialog: item state handling reservation -->
-    <reserve-dialog ref="dialogReserve" :item="dialog.item" />
+    <reserve-dialog ref="dialogReserve" :item="dialogItem" />
 
     <!-- Dialog: item state handling reservation -->
-    <purchase-dialog ref="dialogPurchase" :item="dialog.item" />
+    <purchase-dialog ref="dialogPurchase" :item="dialogItem" />
 
     <!-- Dialog: item removal -->
-    <sl-dialog ref="dialogDelete">
-      <div slot="label">
-        Diesen Wunsch löschen?
-      </div>
-      <div>
-        Damit entfernst den Wunsch «{{ dialog.item?.title }}». Dieses Aktion kann nicht rückgängig gemacht werden.
-      </div>
-      <div slot="footer">
-        <sl-button variant="default" @click="dialogDelete.hide()" class="mr-s" size="large">
-          <sl-icon class="font-xl" slot="suffix" name="arrow-return-left"></sl-icon>
-          Lieber nicht
-        </sl-button>
-        <sl-button variant="danger" size="large" @click="deleteItem(dialog.item)">
-          <sl-icon class="font-xl" slot="suffix" name="trash"></sl-icon>
-          Ja, kann weg
-        </sl-button>
-      </div>
-    </sl-dialog>
+    <delete-dialog ref="dialogDelete" :item="dialogItem" />
   </div>
   <div v-if="!loading && !list">
     <header class="content-center mb-3xl">
