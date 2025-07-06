@@ -1,10 +1,10 @@
 <script setup lang="ts">
 import { computed, inject, onMounted, onUnmounted, reactive, ref } from 'vue';
-import { addToStorage, removeFromStorage } from "@/storage";
+import { addToStorage } from "@/storage";
 import { Sortable } from "sortablejs-vue3";
 import { SupabaseClient } from '@supabase/supabase-js';
 import { Database } from '@/types/supabase';
-import { SlDialog, SlDrawer, SlDetails } from '@shoelace-style/shoelace';
+import { SlDialog, SlDetails } from '@shoelace-style/shoelace';
 import { List, Item, ItemState, InputMode } from '@/types/global';
 import { useRoute, useRouter } from 'vue-router';
 import { notify } from '@/utils';
@@ -12,10 +12,11 @@ import { notify } from '@/utils';
 // Components
 import Logo from '@/components/Logo.vue';
 import ItemCard from '@/components/ItemCard.vue';
+import AdminDrawer from '@/components/AdminDrawer.vue';
 
 // References
 const wishlist = ref<HTMLElement>();
-const drawer = ref<SlDrawer>();
+const drawer = ref();
 const dialogPurchase = ref<SlDialog>();
 const dialogReserve = ref<SlDialog>();
 const dialogDelete = ref<SlDialog>();
@@ -33,16 +34,10 @@ const input = reactive({
     mode: InputMode.Insert,
     target: null as number,
   },
-  list: {
-    title: '',
-    color: '#0ea5e9',
-    description: '',
-  } as List,
 });
 const dialog = reactive({
   item: null as Item,
 });
-const confirmListDeletion = ref(false);
 
 const initItem = computed(() => ({
   title: '',
@@ -70,7 +65,7 @@ onMounted(async () => {
 
   // Init item and list input
   resetItemInput();
-  resetListInput();
+  // resetListInput();
   
   // Set browser title
   document.title = isAdmin.value ? 'Wishlist - Admin: ' + list.value?.title : 'Wishlist - ' + list.value?.title;
@@ -111,32 +106,6 @@ const getData = async () => {
       console.error(fail);
     }
   }
-};
-
-// Save list
-const syncList = async () => {
-  if (input.list.title) {
-    const { data, error } = await supabase
-      .from('lists')
-      .update(input.list)
-      .eq('id', list.value?.id )
-      .select();
-    if (!error) {
-      list.value = data[0];
-      notify('Gespeichert!', 'success');
-    } else {
-      console.error(error);
-      notify('Die Änderung konnte nicht gespeichert werden!', 'danger');
-    }
-    drawer.value.hide();
-  }
-};
-
-// Reset list form
-const resetListInput = () => {
-  input.list.title = list.value?.title;
-  input.list.color = list.value?.color;
-  input.list.description = list.value?.description;
 };
 
 // Calculate the maximum existing weight plus one
@@ -281,19 +250,6 @@ const closeOtherItems = (index: number) => {
   );
 };
 
-// Delete existing item
-const deleteList = async () => {
-  const { error } = await supabase.from('lists').delete().eq('id', list.value?.id)
-  if (!error) {
-    removeFromStorage(list.value);
-    notify('Erfolgreich gelöscht!', 'success');
-    router.push({ name: 'start' });
-  } else {
-    console.error(error);
-    notify('Die List konnte nicht gelöscht werden!', 'danger');
-  }
-};
-
 // Update the order of items
 const saveOrder = async (event) => {
   let errorOccured = false;
@@ -314,17 +270,6 @@ const saveOrder = async (event) => {
   }
   // Toast success
   if (!errorOccured) {
-    notify('Gespeichert!', 'success');
-  } else {
-    notify('Die Änderung konnte nicht gespeichert werden!', 'danger');
-  }
-};
-
-// Handle spoiler changes
-const toggleSpoiler = async () => {
-  list.value.spoiler = !list.value.spoiler;
-  const { error } = await supabase.from('lists').update({ spoiler: list.value.spoiler }).eq('id', list.value.id);
-  if (!error) {
     notify('Gespeichert!', 'success');
   } else {
     notify('Die Änderung konnte nicht gespeichert werden!', 'danger');
@@ -536,60 +481,7 @@ const isItemPurchased = computed(() => {
       </div>
     </div>
     <!-- Admin area for list -->
-    <sl-drawer ref="drawer" label="Administration" class="admin-drawer">
-      <div>
-        <h3>Bearbeite deine Wunschliste</h3>
-        <form @submit.prevent="syncList()">
-          <div v-if="list && list.id" class="d-flex-column gap-m mb-m">
-            <div class="d-flex gap-m">
-              <sl-input
-                class="check-input grow-1"
-                ref="input-list-title"
-                type="text"
-                :value="input.list.title"
-                @input="input.list.title = $event.target.value"
-                placeholder="Titel der Liste"
-                required
-              ></sl-input>
-              <sl-color-picker
-                format="hex"
-                :value="input.list.color"
-                @input="input.list.color = $event.target.value"
-              ></sl-color-picker>
-            </div>
-            <sl-textarea
-              :value="input.list.description"
-              @input="input.list.description = $event.target.value"
-              placeholder="Beschreibung (optional)"
-              rows="3"
-              resize="auto"
-            ></sl-textarea>
-          </div>
-          <sl-button type="submit" variant="primary" size="large">
-              <sl-icon class="font-xl" slot="suffix" name="pencil"></sl-icon>
-              Speichern
-          </sl-button>
-        </form>
-      </div>
-      <div>
-        <h3>Spoiler</h3>
-        <p>Wenn aktiviert, werden alle Reservierungen und Käufe auch in der Verwaltungsansicht der Wunschliste (geheimer Link) angezeigt.</p>
-        <sl-switch @sl-change="toggleSpoiler()" :checked.prop="list.spoiler"></sl-switch>
-      </div>
-      <div class="danger">
-        <h3>Diese Liste kann weg</h3>
-        <p>Hier kann die komplette Wunschliste gelöscht werden. <strong>Das kann nicht rückgängig gemacht werden!</strong> Bist du sicher, dass du das willst?</p>
-        <form @submit.prevent="deleteList()" class="d-flex-column align-items-start gap-m">
-          <sl-checkbox @input="confirmListDeletion = $event.target.checked">
-            Ja, ich bin mir sicher
-          </sl-checkbox>
-          <sl-button type="submit" variant="danger" size="large" :disabled="!confirmListDeletion">
-            <sl-icon class="font-xl" slot="suffix" name="trash"></sl-icon>
-            Löschen
-          </sl-button>
-        </form>
-      </div>
-    </sl-drawer>
+    <admin-drawer ref="drawer" :list="list" />
     <!-- Dialog: item state handling reservation -->
     <sl-dialog ref="dialogReserve">
       <div slot="label">
