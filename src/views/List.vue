@@ -11,6 +11,7 @@ import { notify } from '@/utils';
 
 // Components
 import Logo from '@/components/Logo.vue';
+import ItemCard from '@/components/ItemCard.vue';
 
 // References
 const wishlist = ref<HTMLElement>();
@@ -48,12 +49,12 @@ const initItem = computed(() => ({
   price: '',
   description: '',
   links: '',
-  list: list.value?.id
+  list: list.value?.id,
 }));
 
 // Check if admin token is given and correct
 const isAdmin = computed(() => {
-  return route.params.private && list.value?.slug_private === route.params.private
+  return route.params.private !== '' && list.value?.slug_private === route.params.private;
 });
 
 onMounted(async () => {
@@ -319,12 +320,6 @@ const saveOrder = async (event) => {
   }
 };
 
-// Extract the hostname from a given url
-const getBaseUrl = (url: string) => {
-  const obj = new URL(url);
-  return obj.hostname;
-};
-
 // Handle spoiler changes
 const toggleSpoiler = async () => {
   list.value.spoiler = !list.value.spoiler;
@@ -464,79 +459,19 @@ const isItemPurchased = computed(() => {
         @end="saveOrder"
       >
         <template #item="{ element, index }">
-          <div class="draggable d-flex align-items-center">
-            <sl-icon
-              v-if="isAdmin && items.length > 1"
-              name="chevron-bar-expand"
-              class="icon-handle c-pointer p-s pl-xs font-xl shrink-0"
-            ></sl-icon>
-            <sl-details
-              class="item mb-2xs width-full shrink-1"
-              :reserved="element.state == 'reserved' && allowed"
-              :purchased="element.state == 'purchased' && allowed"
-              @sl-show="closeOtherItems(index)"
-            >
-              <!-- Item title and flag -->
-              <header slot="summary" class="d-flex align-items-center gap-m width-full">
-                <sl-icon v-if="element.state == 'purchased' && allowed" name="check-circle" class="font-xl shrink-0"></sl-icon>
-                <sl-icon v-else-if="element.state == 'reserved' && allowed" name="exclamation-circle" class="font-xl"></sl-icon>
-                <sl-icon v-else name="circle" class="font-xl"></sl-icon>
-                <h3 class="m-0" :title="element.title">{{ element.title }}</h3>
-                <sl-badge v-if="element.state == 'reserved' && allowed" variant="neutral">RESERVIERT</sl-badge>
-                <sl-badge v-if="element.state == 'purchased' && allowed" variant="primary">GEKAUFT</sl-badge>
-                <div v-if="element.price" class="ml-auto mr-m text-mono">
-                  <sl-icon name="tag" class="content-middle"></sl-icon>
-                  {{ element.price }}
-                </div>
-              </header>
-              <!-- Item information -->
-              <main class="d-flex-column gap-m mb-m">
-                <div v-if="element.description" class="pre-line">{{ element.description }}</div>
-                <div v-if="element.links?.length">
-                  <div>Hier kann man das kaufen:</div>
-                  <a v-for="l in element.links" :key="l" class="d-flex align-items-center" :href="l" target="_blank">
-                    <sl-icon name="link-45deg" class="shrink-0 font-l mt-3xs mr-xs"></sl-icon>
-                    <span class="text-overflow-ellipsis">{{ getBaseUrl(l) }}</span>
-                  </a>
-                </div>
-                <div v-else>
-                  Für diesen Wunsch sind keine Linkvorschläge hinterlegt.
-                </div>
-                <div class="font-xs text-gray">
-                  Erstellt am <sl-format-date :date="element.created" month="long" day="numeric" year="numeric" lang="de"></sl-format-date>
-                  &middot;
-                  Letzte Aktivität <sl-relative-time :date="element.modified" lang="de"></sl-relative-time>
-                </div>
-              </main>
-              <!-- Flag and manage item -->
-              <footer class="d-flex justify-end flex-wrap gap-m">
-                <sl-button v-if="isAdmin" variant="danger" size="large" @click="confirmRemoval(element)">
-                  <sl-icon name="trash"></sl-icon>
-                </sl-button>
-                <sl-button v-if="isAdmin" class="mr-auto" variant="primary" size="large" @click="editItem(element)">
-                  <sl-icon name="pencil"></sl-icon>
-                </sl-button>
-                <sl-button-group>
-                  <sl-button v-if="element.state != 'reserved'" variant="neutral" size="large" @click="confirmReserved(element)">
-                    <sl-icon class="font-xl" slot="suffix" name="patch-exclamation"></sl-icon>
-                    Reserviere ich
-                  </sl-button>
-                  <sl-button v-else variant="neutral" size="large" @click="confirmReserved(element)">
-                    <sl-icon class="font-xl" slot="suffix" name="patch-minus"></sl-icon>
-                    Doch nicht reserviert
-                  </sl-button>
-                  <sl-button v-if="element.state != 'purchased'" variant="primary" size="large" @click="confirmPurchased(element)">
-                      <sl-icon class="font-xl" slot="suffix" name="cart-check"></sl-icon>
-                      Habe ich gekauft
-                  </sl-button>
-                  <sl-button v-else variant="primary" size="large" @click="confirmPurchased(element)">
-                    <sl-icon class="font-xl" slot="suffix" name="cart-dash"></sl-icon>
-                    Doch nicht gekauft
-                  </sl-button>
-                </sl-button-group>
-              </footer>
-            </sl-details>
-          </div>
+          <item-card
+            :class="{ draggable: isAdmin }"
+            :item="element"
+            :index="index"
+            :is-admin="isAdmin"
+            :is-status-visible="allowed"
+            :has-sort-handle="isAdmin && items.length > 1"
+            @expand="closeOtherItems"
+            @delete="confirmRemoval"
+            @edit="editItem"
+            @reserve="confirmReserved"
+            @purchase="confirmPurchased"
+          />
         </template>
       </Sortable>
     </section>
