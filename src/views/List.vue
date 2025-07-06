@@ -14,6 +14,7 @@ import Logo from '@/components/Logo.vue';
 import ItemCard from '@/components/ItemCard.vue';
 import AdminDrawer from '@/components/AdminDrawer.vue';
 import ReserveDialog from '@/components/ReserveDialog.vue';
+import PurchaseDialog from '@/components/PurchaseDialog.vue';
 
 // References
 const wishlist = ref<HTMLElement>();
@@ -183,22 +184,6 @@ const confirmPurchased = (item: Item) => {
   dialogPurchase.value.show();
 };
 
-// Set item state to purchased or open
-const togglePurchased = async (item: Item) => {
-  const state = item.state === ItemState.Purchased ? ItemState.Open : ItemState.Purchased;
-  const { data, error } = await supabase.from('items').update({ state: state }).eq('id', item.id).select()
-  if (!error) {
-    items.value[getItemPosition(data[0].id)].state = state;
-    if (state === ItemState.Purchased) {
-      notify('Vielen Dank! ❤️', 'success');
-    }
-  } else {
-    console.error(error);
-    notify('Der Kauf-Status konnte nicht gespeichert werden!', 'danger');
-  }
-  dialogPurchase.value.hide();
-};
-
 // Open dialog for item removal confirmation
 const confirmRemoval = (item: Item) => {
   dialog.item = item;
@@ -291,11 +276,6 @@ const isInputUpdate = computed(() => {
 });
 const isInputInsert = computed(() => {
   return input.item.mode == InputMode.Insert;
-});
-
-// Check item states
-const isItemPurchased = computed(() => {
-  return dialog.item?.state == ItemState.Purchased;
 });
 </script>
 
@@ -469,33 +449,8 @@ const isItemPurchased = computed(() => {
     <reserve-dialog ref="dialogReserve" :item="dialog.item" />
 
     <!-- Dialog: item state handling reservation -->
-    <sl-dialog ref="dialogPurchase">
-      <div slot="label">
-        <span v-if="!isItemPurchased">Als gekauft markieren?</span>
-        <span v-if="isItemPurchased">Den Kauf stornieren?</span>
-      </div>
-      <div v-if="!isItemPurchased">
-        Damit markierst du den Wunsch «{{ dialog.item?.title }}» für jeden sichtbar als gekauft.
-      </div>
-      <div v-if="isItemPurchased">
-        Damit ist der Wunsch «{{ dialog.item?.title }}» nicht mehr als gekauft markiert
-        und er wird für jeden wieder als verfügbar angezeigt.
-      </div>
-      <div slot="footer">
-        <sl-button variant="default" @click="dialogPurchase.hide()" class="mr-s" size="large">
-          <sl-icon class="font-xl" slot="suffix" name="arrow-return-left"></sl-icon>
-          Lieber nicht
-        </sl-button>
-        <sl-button v-if="!isItemPurchased" variant="primary" size="large" @click="togglePurchased(dialog.item)">
-          <sl-icon class="font-xl" slot="suffix" name="cart-check"></sl-icon>
-          Ja, hab ich gekauft
-        </sl-button>
-        <sl-button v-if="isItemPurchased" variant="primary" size="large" @click="togglePurchased(dialog.item)">
-          <sl-icon class="font-xl" slot="suffix" name="cart-dash"></sl-icon>
-          Ja, der Kauf hat nicht geklappt
-        </sl-button>
-      </div>
-    </sl-dialog>
+    <purchase-dialog ref="dialogPurchase" :item="dialog.item" />
+
     <!-- Dialog: item removal -->
     <sl-dialog ref="dialogDelete">
       <div slot="label">
@@ -530,26 +485,6 @@ const isItemPurchased = computed(() => {
 </template>
 
 <style>
-.item::part(header) {
-  border-top-left-radius: var(--sl-border-radius-medium);
-}
-.item h3 {
-  max-width: 55%;
-}
-.item[reserved=true]::part(header) {
-  background: linear-gradient(135deg, var(--sl-color-gray-500) 0%, var(--sl-color-gray-500) 24px, transparent 24px);
-}
-.item[reserved=true] h3 {
-  color: var(--sl-color-gray-400);
-}
-.item[purchased=true]::part(header) {
-  background: linear-gradient(135deg, var(--sl-color-primary-500) 0%, var(--sl-color-primary-500) 24px, transparent 24px);
-}
-.item[purchased=true] h3 {
-  color: var(--sl-color-gray-400);
-  text-decoration: line-through;
-}
-
 .menu {
   height: var(--sl-spacing-4x-large);
   width: var(--sl-spacing-4x-large);
@@ -561,12 +496,6 @@ const isItemPurchased = computed(() => {
 }
 .menu:hover {
   color: var(--sl-color-primary-500);
-}
-
-.admin-drawer::part(body) {
-  display: flex;
-  flex-direction: column;
-  gap: var(--sl-spacing-2x-large);
 }
 
 .copy-button::part(button) {
