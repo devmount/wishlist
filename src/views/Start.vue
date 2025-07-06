@@ -8,7 +8,7 @@ import { useRouter } from 'vue-router';
 
 // Components
 import Logo from '@/components/Logo.vue';
-import ListCard from '@/components/ListCard.vue';
+import ListCard from '@/components/cards/ListCard.vue';
 
 const router = useRouter();
 const supabase = inject<SupabaseClient<Database>>('supabase');

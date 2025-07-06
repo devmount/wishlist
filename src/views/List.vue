@@ -11,11 +11,11 @@ import { notify } from '@/utils';
 
 // Components
 import Logo from '@/components/Logo.vue';
-import ItemCard from '@/components/ItemCard.vue';
+import ItemCard from '@/components/cards/ItemCard.vue';
 import AdminDrawer from '@/components/AdminDrawer.vue';
-import ReserveDialog from '@/components/ReserveDialog.vue';
-import PurchaseDialog from '@/components/PurchaseDialog.vue';
-import DeleteDialog from '@/components/DeleteDialog.vue';
+import ReserveDialog from '@/components/dialogs/ReserveDialog.vue';
+import PurchaseDialog from '@/components/dialogs/PurchaseDialog.vue';
+import DeleteDialog from '@/components/dialogs/DeleteDialog.vue';
 
 // References
 const wishlist = ref<HTMLElement>();
