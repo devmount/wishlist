@@ -7,10 +7,10 @@ import { Database } from '@/types/supabase';
 import { SlDialog, SlDrawer, SlDetails } from '@shoelace-style/shoelace';
 import { List, Item, ItemState, InputMode } from '@/types/global';
 import { useRoute, useRouter } from 'vue-router';
-
-// Import partials
-import Logo from '@/views/partials/Logo.vue';
 import { notify } from '@/utils';
+
+// Components
+import Logo from '@/components/Logo.vue';
 
 // References
 const wishlist = ref<HTMLElement>();

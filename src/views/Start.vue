@@ -6,8 +6,9 @@ import { Database } from '@/types/supabase';
 import { List } from '@/types/global';
 import { useRouter } from 'vue-router';
 
-// import partials
-import Logo from '@/views/partials/Logo.vue';
+// Components
+import Logo from '@/components/Logo.vue';
+import ListCard from '@/components/ListCard.vue';
 
 const router = useRouter();
 const supabase = inject<SupabaseClient<Database>>('supabase');
@@ -62,8 +63,9 @@ const addList = async () => {
   }
 };
 
-// Remove list stored at <index> from local list and local storage
-const removeLocalListEntry = (index: number) => {
+// Remove list with <slug_public> from local list and local storage
+const removeLocalListEntry = (slug: string) => {
+  const index = localLists.value.findIndex(l => l.slug_public === slug);
   if (removeFromStorage(localLists.value[index])) {
     localLists.value.splice(index, 1);
   }
@@ -129,44 +131,12 @@ const removeLocalListEntry = (index: number) => {
       mehr brauchst (die Wunschlisten selbst werden dadurch nicht gelöscht).
     </p>
     <div v-if="localLists.length>0" class="d-grid gap-m three-col">
-      <sl-card
-        v-for="(l, i) in localLists"
-        :key="i"
-        :style="{ background: `linear-gradient(135deg, ${l.color} 0%, ${l.color} 24px, transparent 24px)` }"
-      >
-        <div class="text-overflow-ellipsis">{{ l.title }}</div>
-        <div class="font-xs">
-          Erstellt <sl-relative-time :date="l.created" lang="de"></sl-relative-time>
-          am <sl-format-date :date="l.created" month="long" day="numeric" year="numeric" lang="de"></sl-format-date>
-        </div>
-        <div slot="footer" class="font-xl d-flex justify-space-between">
-          <sl-tooltip content="Eintrag löschen" placement="bottom">
-            <sl-button variant="danger" size="large" @click="removeLocalListEntry(i)" outline>
-              <sl-icon name="trash"></sl-icon>
-            </sl-button>
-          </sl-tooltip>
-          <sl-button-group>
-            <sl-tooltip content="Geteilte Ansicht" placement="bottom">
-              <sl-button
-                variant="default"
-                size="large"
-                @click="$router.push({ name: 'list', params: { public: l.slug_public }})"
-              >
-                <sl-icon name="share"></sl-icon>
-              </sl-button>
-            </sl-tooltip>
-            <sl-tooltip content="Liste bearbeiten" placement="bottom">
-              <sl-button
-                variant="default"
-                size="large"
-                @click="$router.push({ name: 'list', params: { public: l.slug_public, private: l.slug_private }})"
-              >
-                <sl-icon name="pencil"></sl-icon>
-              </sl-button>
-            </sl-tooltip>
-          </sl-button-group>
-        </div>
-      </sl-card>
+      <list-card
+        v-for="list in localLists"
+        :key="list.id"
+        :list="list"
+        @delete="removeLocalListEntry"
+      />
     </div>
     <div v-else>
       Momentan sind hier keine Listen gespeichert.
