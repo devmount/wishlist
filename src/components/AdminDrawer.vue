@@ -139,3 +139,11 @@ defineExpose({ show });
     </div>
   </sl-drawer>
 </template>
+
+<style>
+.admin-drawer::part(body) {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sl-spacing-2x-large);
+}
+</style>

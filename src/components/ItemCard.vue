@@ -100,3 +100,25 @@ const isItemPurchased = computed(() => {
     </sl-details>
   </div>
 </template>
+
+<style>
+.item::part(header) {
+  border-top-left-radius: var(--sl-border-radius-medium);
+}
+.item h3 {
+  max-width: 55%;
+}
+.item[reserved=true]::part(header) {
+  background: linear-gradient(135deg, var(--sl-color-gray-500) 0%, var(--sl-color-gray-500) 24px, transparent 24px);
+}
+.item[reserved=true] h3 {
+  color: var(--sl-color-gray-400);
+}
+.item[purchased=true]::part(header) {
+  background: linear-gradient(135deg, var(--sl-color-primary-500) 0%, var(--sl-color-primary-500) 24px, transparent 24px);
+}
+.item[purchased=true] h3 {
+  color: var(--sl-color-gray-400);
+  text-decoration: line-through;
+}
+</style>
