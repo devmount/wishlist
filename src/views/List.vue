@@ -13,6 +13,7 @@ import { notify } from '@/utils';
 import Logo from '@/components/Logo.vue';
 import ItemCard from '@/components/ItemCard.vue';
 import AdminDrawer from '@/components/AdminDrawer.vue';
+import ReserveDialog from '@/components/ReserveDialog.vue';
 
 // References
 const wishlist = ref<HTMLElement>();
@@ -176,28 +177,6 @@ const getItemPosition = (id: number) => {
   return items.value.findIndex(i => i.id === id);
 };
 
-// Set item state to reserved or open and close dialog
-const toggleReserved = async (item: Item) => {
-  const state = item.state === ItemState.Reserved ? ItemState.Open : ItemState.Reserved;
-  const { data, error } = await supabase.from('items').update({ state: state }).eq('id', item.id).select();
-  if (!error) {
-    items.value[getItemPosition(data[0].id)].state = state;
-    if (state === ItemState.Reserved) {
-      notify(
-        'Erfolgreich reserviert!',
-        'success',
-        'Bitte merke dir, dass dieser Wunsch von dir reserviert ist.',
-        'info-circle',
-        6000
-      );
-    }
-  } else {
-    console.error(error);
-    notify('Der Reservierungs-Status konnte nicht gespeichert werden!', 'danger');
-  }
-  dialogReserve.value.hide();
-};
-
 // Open dialog for purchase confirmation
 const confirmPurchased = (item: Item) => {
   dialog.item = item;
@@ -315,9 +294,6 @@ const isInputInsert = computed(() => {
 });
 
 // Check item states
-const isItemReserved = computed(() => {
-  return dialog.item?.state == ItemState.Reserved;
-});
 const isItemPurchased = computed(() => {
   return dialog.item?.state == ItemState.Purchased;
 });
@@ -420,6 +396,8 @@ const isItemPurchased = computed(() => {
         </template>
       </Sortable>
     </section>
+
+    <!-- Sharing links area -->
     <section v-if="isAdmin" class="mb-3xl">
       <h2>
         <sl-icon class="font-xl" name="share"></sl-icon>
@@ -470,47 +448,26 @@ const isItemPurchased = computed(() => {
         </sl-copy-button>
       </div>
     </section>
+
+    <!-- Meta data -->
     <section class="content-center font-xs text-gray">
       Diese Wunschliste wurde <sl-relative-time :date="list.created" lang="de"></sl-relative-time>
       am <sl-format-date :date="list.created" month="long" day="numeric" year="numeric" lang="de"></sl-format-date> erstellt
     </section>
+
     <!-- Admin area trigger -->
     <div class="admin p-fixed-top-right">
       <div v-if="isAdmin" class="menu" @click="drawer.show()">
         <sl-icon class="font-3xl" name="list"></sl-icon>
       </div>
     </div>
-    <!-- Admin area for list -->
+
+    <!-- Admin area for managing the list -->
     <admin-drawer ref="drawer" :list="list" />
+
     <!-- Dialog: item state handling reservation -->
-    <sl-dialog ref="dialogReserve">
-      <div slot="label">
-        <span v-if="!isItemReserved">Möchtest du reservieren?</span>
-        <span v-if="isItemReserved">Möchtest du die Reservierung aufheben?</span>
-      </div>
-      <div v-if="!isItemReserved">
-        Damit markierst du den Wunsch «{{ dialog.item?.title }}» für jeden sichtbar als reserviert.
-        <strong>Bitte merke dir deine Reservierungen gut, damit du sie später nocht weißt!</strong>
-      </div>
-      <div v-if="isItemReserved">
-        Damit entfernst du die Reservierung für den Wunsch «{{ dialog.item?.title }}»
-        und er wird für jeden wieder als verfügbar angezeigt.
-      </div>
-      <div slot="footer">
-        <sl-button variant="default" @click="dialogReserve.hide()" class="mr-s" size="large">
-          <sl-icon class="font-xl" slot="suffix" name="arrow-return-left"></sl-icon>
-          Lieber nicht
-        </sl-button>
-        <sl-button v-if="!isItemReserved" variant="neutral" size="large" @click="toggleReserved(dialog.item)">
-          <sl-icon class="font-xl" slot="suffix" name="patch-exclamation"></sl-icon>
-          Ja, bitte reservieren
-        </sl-button>
-        <sl-button v-if="isItemReserved" variant="neutral" size="large" @click="toggleReserved(dialog.item)">
-          <sl-icon class="font-xl" slot="suffix" name="patch-minus"></sl-icon>
-          Ja, Reservierung aufheben
-        </sl-button>
-      </div>
-    </sl-dialog>
+    <reserve-dialog ref="dialogReserve" :item="dialog.item" />
+
     <!-- Dialog: item state handling reservation -->
     <sl-dialog ref="dialogPurchase">
       <div slot="label">
