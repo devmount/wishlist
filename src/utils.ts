@@ -1,3 +1,9 @@
+// Extract the hostname from a given url
+export const getBaseUrl = (url: string) => {
+  const obj = new URL(url);
+  return obj.hostname;
+};
+
 // Show a toast notification using Shoelace Alert component
 export const notify = (
   title: string,

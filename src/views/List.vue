@@ -1,20 +1,27 @@
 <script setup lang="ts">
-import { computed, inject, onMounted, onUnmounted, reactive, ref } from 'vue';
-import { addToStorage, removeFromStorage } from "@/storage";
+import { computed, inject, onMounted, onUnmounted, ref } from 'vue';
+import { addToStorage } from "@/storage";
 import { Sortable } from "sortablejs-vue3";
 import { SupabaseClient } from '@supabase/supabase-js';
 import { Database } from '@/types/supabase';
-import { SlDialog, SlDrawer, SlDetails } from '@shoelace-style/shoelace';
-import { List, Item, ItemState, InputMode } from '@/types/global';
+import { SlDialog, SlDetails } from '@shoelace-style/shoelace';
+import { List, Item } from '@/types/global';
 import { useRoute, useRouter } from 'vue-router';
-
-// Import partials
-import Logo from '@/views/partials/Logo.vue';
 import { notify } from '@/utils';
+
+// Components
+import Logo from '@/components/Logo.vue';
+import ItemCard from '@/components/cards/ItemCard.vue';
+import AdminDrawer from '@/components/AdminDrawer.vue';
+import ItemForm from '@/components/ItemForm.vue';
+import ReserveDialog from '@/components/dialogs/ReserveDialog.vue';
+import PurchaseDialog from '@/components/dialogs/PurchaseDialog.vue';
+import DeleteDialog from '@/components/dialogs/DeleteDialog.vue';
 
 // References
 const wishlist = ref<HTMLElement>();
-const drawer = ref<SlDrawer>();
+const drawer = ref();
+const itemForm = ref();
 const dialogPurchase = ref<SlDialog>();
 const dialogReserve = ref<SlDialog>();
 const dialogDelete = ref<SlDialog>();
@@ -26,34 +33,11 @@ const router = useRouter();
 const loading = ref(true);
 const list = ref<List>(null);
 const items = ref<Item[]>([]);
-const input = reactive({
-  item: {
-    data: {} as Item,
-    mode: InputMode.Insert,
-    target: null as number,
-  },
-  list: {
-    title: '',
-    color: '#0ea5e9',
-    description: '',
-  } as List,
-});
-const dialog = reactive({
-  item: null as Item,
-});
-const confirmListDeletion = ref(false);
-
-const initItem = computed(() => ({
-  title: '',
-  price: '',
-  description: '',
-  links: '',
-  list: list.value?.id
-}));
+const dialogItem = ref<Item>(null);
 
 // Check if admin token is given and correct
 const isAdmin = computed(() => {
-  return route.params.private && list.value?.slug_private === route.params.private
+  return route.params.private !== '' && list.value?.slug_private === route.params.private;
 });
 
 onMounted(async () => {
@@ -67,12 +51,10 @@ onMounted(async () => {
     async () => { await getData(); }
   ).subscribe();
 
-  // Init item and list input
-  resetItemInput();
-  resetListInput();
-  
   // Set browser title
-  document.title = isAdmin.value ? 'Wishlist - Admin: ' + list.value?.title : 'Wishlist - ' + list.value?.title;
+  document.title = isAdmin.value
+    ? 'Wishlist - Admin: ' + list.value?.title
+    : 'Wishlist - ' + list.value?.title;
 
   // Check for existing local storage entry and add if it's not there
   if (isAdmin.value) {
@@ -112,160 +94,27 @@ const getData = async () => {
   }
 };
 
-// Save list
-const syncList = async () => {
-  if (input.list.title) {
-    const { data, error } = await supabase
-      .from('lists')
-      .update(input.list)
-      .eq('id', list.value?.id )
-      .select();
-    if (!error) {
-      list.value = data[0];
-      notify('Gespeichert!', 'success');
-    } else {
-      console.error(error);
-      notify('Die Änderung konnte nicht gespeichert werden!', 'danger');
-    }
-    drawer.value.hide();
-  }
-};
-
-// Reset list form
-const resetListInput = () => {
-  input.list.title = list.value?.title;
-  input.list.color = list.value?.color;
-  input.list.description = list.value?.description;
-};
-
-// Calculate the maximum existing weight plus one
-const nextWeight = () => {
-  return Math.max(...items.value.map(i => i.weight)) + 1;
-};
-
-// Store new or edit existing item
-const syncItem = async () => {
-  if (input.item.data.title) {
-    // If valid input: get and preprocess item data
-    let i = JSON.parse(JSON.stringify(input.item.data));
-    i.links = i.links ? i.links.split('\n').map((l: string) => l.trim()) : [];
-    // Check if new or edited item
-    switch (input.item.mode) {
-      case InputMode.Insert:
-        i.weight = nextWeight();
-        const { error: insertError } = await supabase.from('items').insert(i)
-        if (!insertError) {
-          items.value.unshift(i);
-          notify('Wunsch hinzugefügt!', 'success');
-        } else {
-          console.error(insertError);
-          notify('Die Änderung konnte nicht gespeichert werden!', 'danger');
-        }
-        break;
-      case InputMode.Update:
-        const { error: updateError } = await supabase.from('items').update(i).eq('id', input.item.target)
-        if (!updateError) {
-          items.value[getItemPosition(i.id)] = i;
-          notify('Wunsch erfolgreich aktualisiert!', 'success');
-        } else {
-          console.error(updateError);
-          notify('Die Änderung konnte nicht gespeichert werden!', 'danger');
-        }
-        break;
-      default: break
-    }
-    // Reset form
-    resetItemInput()
-  }
-};
-
 // Edit existing item
-const editItem = (item: Item) => {
-  let i = JSON.parse(JSON.stringify(item));
-  i.links = item.links ? item.links.join('\n') : '';
-  input.item.data = i;
-  input.item.mode = InputMode.Update;
-  input.item.target = i.id;
-};
-
-// Reset item form
-const resetItemInput = () => {
-  input.item.data = JSON.parse(JSON.stringify(initItem.value));
-  input.item.mode = InputMode.Insert;
-  input.item.target = null;
+const edit = (item: Item) => {
+  itemForm.value.setItem(item);
 };
 
 // Open dialog for reservation confirmation
 const confirmReserved = (item: Item) => {
-  dialog.item = item;
+  dialogItem.value = item;
   dialogReserve.value.show();
-};
-
-// Find current position of list item with given <id>
-const getItemPosition = (id: number) => {
-  return items.value.findIndex(i => i.id === id);
-};
-
-// Set item state to reserved or open and close dialog
-const toggleReserved = async (item: Item) => {
-  const state = item.state === ItemState.Reserved ? ItemState.Open : ItemState.Reserved;
-  const { data, error } = await supabase.from('items').update({ state: state }).eq('id', item.id).select();
-  if (!error) {
-    items.value[getItemPosition(data[0].id)].state = state;
-    if (state === ItemState.Reserved) {
-      notify(
-        'Erfolgreich reserviert!',
-        'success',
-        'Bitte merke dir, dass dieser Wunsch von dir reserviert ist.',
-        'info-circle',
-        6000
-      );
-    }
-  } else {
-    console.error(error);
-    notify('Der Reservierungs-Status konnte nicht gespeichert werden!', 'danger');
-  }
-  dialogReserve.value.hide();
 };
 
 // Open dialog for purchase confirmation
 const confirmPurchased = (item: Item) => {
-  dialog.item = item;
+  dialogItem.value = item;
   dialogPurchase.value.show();
-};
-
-// Set item state to purchased or open
-const togglePurchased = async (item: Item) => {
-  const state = item.state === ItemState.Purchased ? ItemState.Open : ItemState.Purchased;
-  const { data, error } = await supabase.from('items').update({ state: state }).eq('id', item.id).select()
-  if (!error) {
-    items.value[getItemPosition(data[0].id)].state = state;
-    if (state === ItemState.Purchased) {
-      notify('Vielen Dank! ❤️', 'success');
-    }
-  } else {
-    console.error(error);
-    notify('Der Kauf-Status konnte nicht gespeichert werden!', 'danger');
-  }
-  dialogPurchase.value.hide();
 };
 
 // Open dialog for item removal confirmation
 const confirmRemoval = (item: Item) => {
-  dialog.item = item;
+  dialogItem.value = item;
   dialogDelete.value.show();
-};
-
-// Delete existing item
-const deleteItem = async (item: Item) => {
-  const { error } = await supabase.from('items').delete().match({ id: item.id });
-  if (!error) {
-    items.value.slice(getItemPosition(item.id), 1);
-  } else {
-    console.error(error);
-    notify('Der Wunsch konnte nicht gelöscht werden!', 'danger');
-  }
-  dialogDelete.value.hide();
 };
 
 // Send given text as body content in new email
@@ -278,19 +127,6 @@ const closeOtherItems = (index: number) => {
   [...wishlist.value.querySelectorAll('sl-details')].forEach(
     (item: SlDetails, position: number) => (item.open = position == index)
   );
-};
-
-// Delete existing item
-const deleteList = async () => {
-  const { error } = await supabase.from('lists').delete().eq('id', list.value?.id)
-  if (!error) {
-    removeFromStorage(list.value);
-    notify('Erfolgreich gelöscht!', 'success');
-    router.push({ name: 'start' });
-  } else {
-    console.error(error);
-    notify('Die List konnte nicht gelöscht werden!', 'danger');
-  }
 };
 
 // Update the order of items
@@ -313,23 +149,6 @@ const saveOrder = async (event) => {
   }
   // Toast success
   if (!errorOccured) {
-    notify('Gespeichert!', 'success');
-  } else {
-    notify('Die Änderung konnte nicht gespeichert werden!', 'danger');
-  }
-};
-
-// Extract the hostname from a given url
-const getBaseUrl = (url: string) => {
-  const obj = new URL(url);
-  return obj.hostname;
-};
-
-// Handle spoiler changes
-const toggleSpoiler = async () => {
-  list.value.spoiler = !list.value.spoiler;
-  const { error } = await supabase.from('lists').update({ spoiler: list.value.spoiler }).eq('id', list.value.id);
-  if (!error) {
     notify('Gespeichert!', 'success');
   } else {
     notify('Die Änderung konnte nicht gespeichert werden!', 'danger');
@@ -366,20 +185,9 @@ const accent = computed(() => {
   return list.value?.color ?? '#000000'
 });
 
-// Check input modes
-const isInputUpdate = computed(() => {
-  return input.item.mode == InputMode.Update;
-});
-const isInputInsert = computed(() => {
-  return input.item.mode == InputMode.Insert;
-});
-
-// Check item states
-const isItemReserved = computed(() => {
-  return dialog.item?.state == ItemState.Reserved;
-});
-const isItemPurchased = computed(() => {
-  return dialog.item?.state == ItemState.Purchased;
+// Calculate the maximum existing weight
+const maxWeight = computed(() => {
+  return Math.max(...items.value.map(i => i.weight)) + 1;
 });
 </script>
 
@@ -399,63 +207,11 @@ const isItemPurchased = computed(() => {
       <hr :style="{ background: accent }" /> 
       <p class="pre-line">{{ list.description }}</p>
     </header>
-    <section v-if="isAdmin" class="mb-3xl">
-      <h2>
-        <sl-icon class="font-xl" name="bag-plus"></sl-icon>
-        Füge einen Wunsch hinzu
-      </h2>
-      <form @submit.prevent="syncItem()">
-        <div class="d-flex flex-wrap gap-m mb-m">
-          <sl-input
-            ref="input-item-title"
-            class="check-input grow-5"
-            type="text"
-            :value="input.item.data.title"
-            @input="input.item.data.title = $event.target.value"
-            placeholder="Titel"
-            required
-          ></sl-input>
-          <sl-input
-            class="grow-1"
-            type="text"
-            :value="input.item.data.price"
-            @input="input.item.data.price = $event.target.value"
-            placeholder="Preis (optional)"
-          ></sl-input>
-        </div>
-        <sl-textarea
-          class="grow-1 mb-m"
-          type="text"
-          :value="input.item.data.description"
-          @input="input.item.data.description = $event.target.value"
-          placeholder="Beschreibung (optional)"
-          rows="1"
-          resize="auto"
-        ></sl-textarea>
-        <sl-textarea
-          class="check-input grow-1 mb-m"
-          :value="input.item.data.links"
-          @input="input.item.data.links = $event.target.value"
-          placeholder="Link Adressen zum Artikel (ein Link pro Zeile)"
-          rows="1"
-          resize="auto"
-        ></sl-textarea>
-        <div class="d-flex justify-end gap-m">
-          <sl-button v-if="isInputUpdate" variant="default" size="large" @click="resetItemInput()">
-            <sl-icon class="font-xl" slot="suffix" name="arrow-return-left"></sl-icon>
-            Lieber nicht ändern
-          </sl-button>
-          <sl-button v-if="isInputUpdate" type="submit" variant="primary" size="large">
-            <sl-icon class="font-xl" slot="suffix" name="pencil"></sl-icon>
-            Wunsch anpassen
-          </sl-button>
-          <sl-button v-if="isInputInsert" type="submit" variant="primary" size="large">
-            <sl-icon class="font-xl" slot="suffix" name="plus"></sl-icon>
-            Wünschen
-          </sl-button>
-        </div>
-      </form>
-    </section>
+
+    <!-- Form to add or edit items -->
+    <item-form v-if="isAdmin" ref="itemForm" :list="list" :max-weight="maxWeight" />
+
+    <!-- Sortable item list -->
     <section ref="wishlist" class="mb-3xl">
       <Sortable
         :list="items"
@@ -464,82 +220,24 @@ const isItemPurchased = computed(() => {
         @end="saveOrder"
       >
         <template #item="{ element, index }">
-          <div class="draggable d-flex align-items-center">
-            <sl-icon
-              v-if="isAdmin && items.length > 1"
-              name="chevron-bar-expand"
-              class="icon-handle c-pointer p-s pl-xs font-xl shrink-0"
-            ></sl-icon>
-            <sl-details
-              class="item mb-2xs width-full shrink-1"
-              :reserved="element.state == 'reserved' && allowed"
-              :purchased="element.state == 'purchased' && allowed"
-              @sl-show="closeOtherItems(index)"
-            >
-              <!-- Item title and flag -->
-              <header slot="summary" class="d-flex align-items-center gap-m width-full">
-                <sl-icon v-if="element.state == 'purchased' && allowed" name="check-circle" class="font-xl shrink-0"></sl-icon>
-                <sl-icon v-else-if="element.state == 'reserved' && allowed" name="exclamation-circle" class="font-xl"></sl-icon>
-                <sl-icon v-else name="circle" class="font-xl"></sl-icon>
-                <h3 class="m-0" :title="element.title">{{ element.title }}</h3>
-                <sl-badge v-if="element.state == 'reserved' && allowed" variant="neutral">RESERVIERT</sl-badge>
-                <sl-badge v-if="element.state == 'purchased' && allowed" variant="primary">GEKAUFT</sl-badge>
-                <div v-if="element.price" class="ml-auto mr-m text-mono">
-                  <sl-icon name="tag" class="content-middle"></sl-icon>
-                  {{ element.price }}
-                </div>
-              </header>
-              <!-- Item information -->
-              <main class="d-flex-column gap-m mb-m">
-                <div v-if="element.description" class="pre-line">{{ element.description }}</div>
-                <div v-if="element.links?.length">
-                  <div>Hier kann man das kaufen:</div>
-                  <a v-for="l in element.links" :key="l" class="d-flex align-items-center" :href="l" target="_blank">
-                    <sl-icon name="link-45deg" class="shrink-0 font-l mt-3xs mr-xs"></sl-icon>
-                    <span class="text-overflow-ellipsis">{{ getBaseUrl(l) }}</span>
-                  </a>
-                </div>
-                <div v-else>
-                  Für diesen Wunsch sind keine Linkvorschläge hinterlegt.
-                </div>
-                <div class="font-xs text-gray">
-                  Erstellt am <sl-format-date :date="element.created" month="long" day="numeric" year="numeric" lang="de"></sl-format-date>
-                  &middot;
-                  Letzte Aktivität <sl-relative-time :date="element.modified" lang="de"></sl-relative-time>
-                </div>
-              </main>
-              <!-- Flag and manage item -->
-              <footer class="d-flex justify-end flex-wrap gap-m">
-                <sl-button v-if="isAdmin" variant="danger" size="large" @click="confirmRemoval(element)">
-                  <sl-icon name="trash"></sl-icon>
-                </sl-button>
-                <sl-button v-if="isAdmin" class="mr-auto" variant="primary" size="large" @click="editItem(element)">
-                  <sl-icon name="pencil"></sl-icon>
-                </sl-button>
-                <sl-button-group>
-                  <sl-button v-if="element.state != 'reserved'" variant="neutral" size="large" @click="confirmReserved(element)">
-                    <sl-icon class="font-xl" slot="suffix" name="patch-exclamation"></sl-icon>
-                    Reserviere ich
-                  </sl-button>
-                  <sl-button v-else variant="neutral" size="large" @click="confirmReserved(element)">
-                    <sl-icon class="font-xl" slot="suffix" name="patch-minus"></sl-icon>
-                    Doch nicht reserviert
-                  </sl-button>
-                  <sl-button v-if="element.state != 'purchased'" variant="primary" size="large" @click="confirmPurchased(element)">
-                      <sl-icon class="font-xl" slot="suffix" name="cart-check"></sl-icon>
-                      Habe ich gekauft
-                  </sl-button>
-                  <sl-button v-else variant="primary" size="large" @click="confirmPurchased(element)">
-                    <sl-icon class="font-xl" slot="suffix" name="cart-dash"></sl-icon>
-                    Doch nicht gekauft
-                  </sl-button>
-                </sl-button-group>
-              </footer>
-            </sl-details>
-          </div>
+          <item-card
+            :class="{ draggable: isAdmin }"
+            :item="element"
+            :index="index"
+            :is-admin="isAdmin"
+            :is-status-visible="allowed"
+            :has-sort-handle="isAdmin && items.length > 1"
+            @expand="closeOtherItems"
+            @delete="confirmRemoval"
+            @edit="edit"
+            @reserve="confirmReserved"
+            @purchase="confirmPurchased"
+          />
         </template>
       </Sortable>
     </section>
+
+    <!-- Sharing links area -->
     <section v-if="isAdmin" class="mb-3xl">
       <h2>
         <sl-icon class="font-xl" name="share"></sl-icon>
@@ -590,147 +288,31 @@ const isItemPurchased = computed(() => {
         </sl-copy-button>
       </div>
     </section>
+
+    <!-- Meta data -->
     <section class="content-center font-xs text-gray">
       Diese Wunschliste wurde <sl-relative-time :date="list.created" lang="de"></sl-relative-time>
       am <sl-format-date :date="list.created" month="long" day="numeric" year="numeric" lang="de"></sl-format-date> erstellt
     </section>
+
     <!-- Admin area trigger -->
     <div class="admin p-fixed-top-right">
       <div v-if="isAdmin" class="menu" @click="drawer.show()">
         <sl-icon class="font-3xl" name="list"></sl-icon>
       </div>
     </div>
-    <!-- Admin area for list -->
-    <sl-drawer ref="drawer" label="Administration" class="admin-drawer">
-      <div>
-        <h3>Bearbeite deine Wunschliste</h3>
-        <form @submit.prevent="syncList()">
-          <div v-if="list && list.id" class="d-flex-column gap-m mb-m">
-            <div class="d-flex gap-m">
-              <sl-input
-                class="check-input grow-1"
-                ref="input-list-title"
-                type="text"
-                :value="input.list.title"
-                @input="input.list.title = $event.target.value"
-                placeholder="Titel der Liste"
-                required
-              ></sl-input>
-              <sl-color-picker
-                format="hex"
-                :value="input.list.color"
-                @input="input.list.color = $event.target.value"
-              ></sl-color-picker>
-            </div>
-            <sl-textarea
-              :value="input.list.description"
-              @input="input.list.description = $event.target.value"
-              placeholder="Beschreibung (optional)"
-              rows="3"
-              resize="auto"
-            ></sl-textarea>
-          </div>
-          <sl-button type="submit" variant="primary" size="large">
-              <sl-icon class="font-xl" slot="suffix" name="pencil"></sl-icon>
-              Speichern
-          </sl-button>
-        </form>
-      </div>
-      <div>
-        <h3>Spoiler</h3>
-        <p>Wenn aktiviert, werden alle Reservierungen und Käufe auch in der Verwaltungsansicht der Wunschliste (geheimer Link) angezeigt.</p>
-        <sl-switch @sl-change="toggleSpoiler()" :checked.prop="list.spoiler"></sl-switch>
-      </div>
-      <div class="danger">
-        <h3>Diese Liste kann weg</h3>
-        <p>Hier kann die komplette Wunschliste gelöscht werden. <strong>Das kann nicht rückgängig gemacht werden!</strong> Bist du sicher, dass du das willst?</p>
-        <form @submit.prevent="deleteList()" class="d-flex-column align-items-start gap-m">
-          <sl-checkbox @input="confirmListDeletion = $event.target.checked">
-            Ja, ich bin mir sicher
-          </sl-checkbox>
-          <sl-button type="submit" variant="danger" size="large" :disabled="!confirmListDeletion">
-            <sl-icon class="font-xl" slot="suffix" name="trash"></sl-icon>
-            Löschen
-          </sl-button>
-        </form>
-      </div>
-    </sl-drawer>
+
+    <!-- Admin area for managing the list -->
+    <admin-drawer ref="drawer" :list="list" />
+
     <!-- Dialog: item state handling reservation -->
-    <sl-dialog ref="dialogReserve">
-      <div slot="label">
-        <span v-if="!isItemReserved">Möchtest du reservieren?</span>
-        <span v-if="isItemReserved">Möchtest du die Reservierung aufheben?</span>
-      </div>
-      <div v-if="!isItemReserved">
-        Damit markierst du den Wunsch «{{ dialog.item?.title }}» für jeden sichtbar als reserviert.
-        <strong>Bitte merke dir deine Reservierungen gut, damit du sie später nocht weißt!</strong>
-      </div>
-      <div v-if="isItemReserved">
-        Damit entfernst du die Reservierung für den Wunsch «{{ dialog.item?.title }}»
-        und er wird für jeden wieder als verfügbar angezeigt.
-      </div>
-      <div slot="footer">
-        <sl-button variant="default" @click="dialogReserve.hide()" class="mr-s" size="large">
-          <sl-icon class="font-xl" slot="suffix" name="arrow-return-left"></sl-icon>
-          Lieber nicht
-        </sl-button>
-        <sl-button v-if="!isItemReserved" variant="neutral" size="large" @click="toggleReserved(dialog.item)">
-          <sl-icon class="font-xl" slot="suffix" name="patch-exclamation"></sl-icon>
-          Ja, bitte reservieren
-        </sl-button>
-        <sl-button v-if="isItemReserved" variant="neutral" size="large" @click="toggleReserved(dialog.item)">
-          <sl-icon class="font-xl" slot="suffix" name="patch-minus"></sl-icon>
-          Ja, Reservierung aufheben
-        </sl-button>
-      </div>
-    </sl-dialog>
+    <reserve-dialog ref="dialogReserve" :item="dialogItem" />
+
     <!-- Dialog: item state handling reservation -->
-    <sl-dialog ref="dialogPurchase">
-      <div slot="label">
-        <span v-if="!isItemPurchased">Als gekauft markieren?</span>
-        <span v-if="isItemPurchased">Den Kauf stornieren?</span>
-      </div>
-      <div v-if="!isItemPurchased">
-        Damit markierst du den Wunsch «{{ dialog.item?.title }}» für jeden sichtbar als gekauft.
-      </div>
-      <div v-if="isItemPurchased">
-        Damit ist der Wunsch «{{ dialog.item?.title }}» nicht mehr als gekauft markiert
-        und er wird für jeden wieder als verfügbar angezeigt.
-      </div>
-      <div slot="footer">
-        <sl-button variant="default" @click="dialogPurchase.hide()" class="mr-s" size="large">
-          <sl-icon class="font-xl" slot="suffix" name="arrow-return-left"></sl-icon>
-          Lieber nicht
-        </sl-button>
-        <sl-button v-if="!isItemPurchased" variant="primary" size="large" @click="togglePurchased(dialog.item)">
-          <sl-icon class="font-xl" slot="suffix" name="cart-check"></sl-icon>
-          Ja, hab ich gekauft
-        </sl-button>
-        <sl-button v-if="isItemPurchased" variant="primary" size="large" @click="togglePurchased(dialog.item)">
-          <sl-icon class="font-xl" slot="suffix" name="cart-dash"></sl-icon>
-          Ja, der Kauf hat nicht geklappt
-        </sl-button>
-      </div>
-    </sl-dialog>
+    <purchase-dialog ref="dialogPurchase" :item="dialogItem" />
+
     <!-- Dialog: item removal -->
-    <sl-dialog ref="dialogDelete">
-      <div slot="label">
-        Diesen Wunsch löschen?
-      </div>
-      <div>
-        Damit entfernst den Wunsch «{{ dialog.item?.title }}». Dieses Aktion kann nicht rückgängig gemacht werden.
-      </div>
-      <div slot="footer">
-        <sl-button variant="default" @click="dialogDelete.hide()" class="mr-s" size="large">
-          <sl-icon class="font-xl" slot="suffix" name="arrow-return-left"></sl-icon>
-          Lieber nicht
-        </sl-button>
-        <sl-button variant="danger" size="large" @click="deleteItem(dialog.item)">
-          <sl-icon class="font-xl" slot="suffix" name="trash"></sl-icon>
-          Ja, kann weg
-        </sl-button>
-      </div>
-    </sl-dialog>
+    <delete-dialog ref="dialogDelete" :item="dialogItem" />
   </div>
   <div v-if="!loading && !list">
     <header class="content-center mb-3xl">
@@ -746,26 +328,6 @@ const isItemPurchased = computed(() => {
 </template>
 
 <style>
-.item::part(header) {
-  border-top-left-radius: var(--sl-border-radius-medium);
-}
-.item h3 {
-  max-width: 55%;
-}
-.item[reserved=true]::part(header) {
-  background: linear-gradient(135deg, var(--sl-color-gray-500) 0%, var(--sl-color-gray-500) 24px, transparent 24px);
-}
-.item[reserved=true] h3 {
-  color: var(--sl-color-gray-400);
-}
-.item[purchased=true]::part(header) {
-  background: linear-gradient(135deg, var(--sl-color-primary-500) 0%, var(--sl-color-primary-500) 24px, transparent 24px);
-}
-.item[purchased=true] h3 {
-  color: var(--sl-color-gray-400);
-  text-decoration: line-through;
-}
-
 .menu {
   height: var(--sl-spacing-4x-large);
   width: var(--sl-spacing-4x-large);
@@ -777,12 +339,6 @@ const isItemPurchased = computed(() => {
 }
 .menu:hover {
   color: var(--sl-color-primary-500);
-}
-
-.admin-drawer::part(body) {
-  display: flex;
-  flex-direction: column;
-  gap: var(--sl-spacing-2x-large);
 }
 
 .copy-button::part(button) {
