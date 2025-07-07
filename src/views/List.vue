@@ -30,7 +30,8 @@ const supabase = inject<SupabaseClient<Database>>('supabase');
 const route = useRoute();
 const router = useRouter();
 
-const loading = ref(true);
+const loading = ref(true); // Initially loading the page
+const processing = ref(false); // Loading async data in between
 const list = ref<List>(null);
 const items = ref<Item[]>([]);
 const dialogItem = ref<Item>(null);
@@ -72,6 +73,8 @@ onUnmounted(() => {
 
 // Retrieve requested data
 const getData = async () => {
+  processing.value = true;
+
   // Query list by route
   const { data, error } = await supabase
     .from('lists')
@@ -92,6 +95,8 @@ const getData = async () => {
       console.error(fail);
     }
   }
+
+  processing.value = false;
 };
 
 // Edit existing item
@@ -314,6 +319,8 @@ const maxWeight = computed(() => {
     <!-- Dialog: item removal -->
     <delete-dialog ref="dialogDelete" :item="dialogItem" />
   </div>
+
+  <!-- 404 -->
   <div v-if="!loading && !list">
     <header class="content-center mb-3xl">
       <Logo />
@@ -325,6 +332,9 @@ const maxWeight = computed(() => {
       </p>
     </header>
   </div>
+
+  <!-- Background processing indicator -->
+  <sl-spinner v-if="processing" class="processing font-2xl"></sl-spinner>
 </template>
 
 <style>
@@ -373,5 +383,11 @@ const maxWeight = computed(() => {
 sl-button-group .copy-button::part(button) {
   border-top-right-radius: 0;
   border-bottom-right-radius: 0;
+}
+
+.processing {
+  position: fixed;
+  bottom: 1rem;
+  left: 1rem;
 }
 </style>
