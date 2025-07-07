@@ -6,7 +6,7 @@ import { SlDrawer } from '@shoelace-style/shoelace';
 import { SupabaseClient } from '@supabase/supabase-js';
 import { Database } from '@/types/supabase';
 import { notify } from '@/utils';
-import { removeFromStorage } from "@/storage";
+import { updateInStorage, removeFromStorage } from "@/storage";
 
 const router = useRouter();
 
@@ -38,8 +38,9 @@ onMounted(() => {
 // Save list
 const syncList = async () => {
   if (input.value.title) {
-    const { error } = await supabase.from('lists').update(input.value).eq('id', props.list.id );
+    const { data, error } = await supabase.from('lists').update(input.value).eq('id', props.list.id ).select();
     if (!error) {
+      updateInStorage(data[0]);
       notify('Gespeichert!', 'success');
     } else {
       console.error(error);

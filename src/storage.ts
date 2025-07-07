@@ -40,6 +40,21 @@ export const addToStorage = (list: List): List | null => {
 };
 
 /**
+ * Updates given list in local storage, returns true if update happened.
+ */
+export const updateInStorage = (list: List): boolean => {
+  const lists = getAllFromStorage();
+  const index = listIndex(list);
+  if (index >= 0) {
+    // If that list exists, update it
+    lists[index] = list;
+    localStorage.wishlists = JSON.stringify(lists);
+    return true;
+  }
+  return false;
+};
+
+/**
  * Remove given list from local storage, returns true if deletion happened.
  */
 export const removeFromStorage = (list: List): boolean => {
@@ -59,5 +74,6 @@ export default {
   listIndex,
   listExists,
   addToStorage,
+  updateInStorage,
   removeFromStorage,
 };
