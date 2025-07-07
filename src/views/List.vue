@@ -1,11 +1,11 @@
 <script setup lang="ts">
-import { computed, inject, onMounted, onUnmounted, reactive, ref } from 'vue';
+import { computed, inject, onMounted, onUnmounted, ref } from 'vue';
 import { addToStorage } from "@/storage";
 import { Sortable } from "sortablejs-vue3";
 import { SupabaseClient } from '@supabase/supabase-js';
 import { Database } from '@/types/supabase';
 import { SlDialog, SlDetails } from '@shoelace-style/shoelace';
-import { List, Item, InputMode } from '@/types/global';
+import { List, Item } from '@/types/global';
 import { useRoute, useRouter } from 'vue-router';
 import { notify } from '@/utils';
 
@@ -13,6 +13,7 @@ import { notify } from '@/utils';
 import Logo from '@/components/Logo.vue';
 import ItemCard from '@/components/cards/ItemCard.vue';
 import AdminDrawer from '@/components/AdminDrawer.vue';
+import ItemForm from '@/components/ItemForm.vue';
 import ReserveDialog from '@/components/dialogs/ReserveDialog.vue';
 import PurchaseDialog from '@/components/dialogs/PurchaseDialog.vue';
 import DeleteDialog from '@/components/dialogs/DeleteDialog.vue';
@@ -20,6 +21,7 @@ import DeleteDialog from '@/components/dialogs/DeleteDialog.vue';
 // References
 const wishlist = ref<HTMLElement>();
 const drawer = ref();
+const itemForm = ref();
 const dialogPurchase = ref<SlDialog>();
 const dialogReserve = ref<SlDialog>();
 const dialogDelete = ref<SlDialog>();
@@ -31,22 +33,7 @@ const router = useRouter();
 const loading = ref(true);
 const list = ref<List>(null);
 const items = ref<Item[]>([]);
-const input = reactive({
-  item: {
-    data: {} as Item,
-    mode: InputMode.Insert,
-    target: null as number,
-  },
-});
 const dialogItem = ref<Item>(null);
-
-const initItem = computed(() => ({
-  title: '',
-  price: '',
-  description: '',
-  links: '',
-  list: list.value?.id,
-}));
 
 // Check if admin token is given and correct
 const isAdmin = computed(() => {
@@ -64,12 +51,10 @@ onMounted(async () => {
     async () => { await getData(); }
   ).subscribe();
 
-  // Init item and list input
-  resetItemInput();
-  // resetListInput();
-  
   // Set browser title
-  document.title = isAdmin.value ? 'Wishlist - Admin: ' + list.value?.title : 'Wishlist - ' + list.value?.title;
+  document.title = isAdmin.value
+    ? 'Wishlist - Admin: ' + list.value?.title
+    : 'Wishlist - ' + list.value?.title;
 
   // Check for existing local storage entry and add if it's not there
   if (isAdmin.value) {
@@ -109,72 +94,15 @@ const getData = async () => {
   }
 };
 
-// Calculate the maximum existing weight plus one
-const nextWeight = () => {
-  return Math.max(...items.value.map(i => i.weight)) + 1;
-};
-
-// Store new or edit existing item
-const syncItem = async () => {
-  if (input.item.data.title) {
-    // If valid input: get and preprocess item data
-    let i = JSON.parse(JSON.stringify(input.item.data));
-    i.links = i.links ? i.links.split('\n').map((l: string) => l.trim()) : [];
-    // Check if new or edited item
-    switch (input.item.mode) {
-      case InputMode.Insert:
-        i.weight = nextWeight();
-        const { error: insertError } = await supabase.from('items').insert(i)
-        if (!insertError) {
-          items.value.unshift(i);
-          notify('Wunsch hinzugefügt!', 'success');
-        } else {
-          console.error(insertError);
-          notify('Die Änderung konnte nicht gespeichert werden!', 'danger');
-        }
-        break;
-      case InputMode.Update:
-        const { error: updateError } = await supabase.from('items').update(i).eq('id', input.item.target)
-        if (!updateError) {
-          items.value[getItemPosition(i.id)] = i;
-          notify('Wunsch erfolgreich aktualisiert!', 'success');
-        } else {
-          console.error(updateError);
-          notify('Die Änderung konnte nicht gespeichert werden!', 'danger');
-        }
-        break;
-      default: break
-    }
-    // Reset form
-    resetItemInput()
-  }
-};
-
 // Edit existing item
-const editItem = (item: Item) => {
-  let i = JSON.parse(JSON.stringify(item));
-  i.links = item.links ? item.links.join('\n') : '';
-  input.item.data = i;
-  input.item.mode = InputMode.Update;
-  input.item.target = i.id;
-};
-
-// Reset item form
-const resetItemInput = () => {
-  input.item.data = JSON.parse(JSON.stringify(initItem.value));
-  input.item.mode = InputMode.Insert;
-  input.item.target = null;
+const edit = (item: Item) => {
+  itemForm.value.setItem(item);
 };
 
 // Open dialog for reservation confirmation
 const confirmReserved = (item: Item) => {
   dialogItem.value = item;
   dialogReserve.value.show();
-};
-
-// Find current position of list item with given <id>
-const getItemPosition = (id: number) => {
-  return items.value.findIndex(i => i.id === id);
 };
 
 // Open dialog for purchase confirmation
@@ -257,12 +185,9 @@ const accent = computed(() => {
   return list.value?.color ?? '#000000'
 });
 
-// Check input modes
-const isInputUpdate = computed(() => {
-  return input.item.mode == InputMode.Update;
-});
-const isInputInsert = computed(() => {
-  return input.item.mode == InputMode.Insert;
+// Calculate the maximum existing weight
+const maxWeight = computed(() => {
+  return Math.max(...items.value.map(i => i.weight)) + 1;
 });
 </script>
 
@@ -282,63 +207,11 @@ const isInputInsert = computed(() => {
       <hr :style="{ background: accent }" /> 
       <p class="pre-line">{{ list.description }}</p>
     </header>
-    <section v-if="isAdmin" class="mb-3xl">
-      <h2>
-        <sl-icon class="font-xl" name="bag-plus"></sl-icon>
-        Füge einen Wunsch hinzu
-      </h2>
-      <form @submit.prevent="syncItem()">
-        <div class="d-flex flex-wrap gap-m mb-m">
-          <sl-input
-            ref="input-item-title"
-            class="check-input grow-5"
-            type="text"
-            :value="input.item.data.title"
-            @input="input.item.data.title = $event.target.value"
-            placeholder="Titel"
-            required
-          ></sl-input>
-          <sl-input
-            class="grow-1"
-            type="text"
-            :value="input.item.data.price"
-            @input="input.item.data.price = $event.target.value"
-            placeholder="Preis (optional)"
-          ></sl-input>
-        </div>
-        <sl-textarea
-          class="grow-1 mb-m"
-          type="text"
-          :value="input.item.data.description"
-          @input="input.item.data.description = $event.target.value"
-          placeholder="Beschreibung (optional)"
-          rows="1"
-          resize="auto"
-        ></sl-textarea>
-        <sl-textarea
-          class="check-input grow-1 mb-m"
-          :value="input.item.data.links"
-          @input="input.item.data.links = $event.target.value"
-          placeholder="Link Adressen zum Artikel (ein Link pro Zeile)"
-          rows="1"
-          resize="auto"
-        ></sl-textarea>
-        <div class="d-flex justify-end gap-m">
-          <sl-button v-if="isInputUpdate" variant="default" size="large" @click="resetItemInput()">
-            <sl-icon class="font-xl" slot="suffix" name="arrow-return-left"></sl-icon>
-            Lieber nicht ändern
-          </sl-button>
-          <sl-button v-if="isInputUpdate" type="submit" variant="primary" size="large">
-            <sl-icon class="font-xl" slot="suffix" name="pencil"></sl-icon>
-            Wunsch anpassen
-          </sl-button>
-          <sl-button v-if="isInputInsert" type="submit" variant="primary" size="large">
-            <sl-icon class="font-xl" slot="suffix" name="plus"></sl-icon>
-            Wünschen
-          </sl-button>
-        </div>
-      </form>
-    </section>
+
+    <!-- Form to add or edit items -->
+    <item-form v-if="isAdmin" ref="itemForm" :list="list" :max-weight="maxWeight" />
+
+    <!-- Sortable item list -->
     <section ref="wishlist" class="mb-3xl">
       <Sortable
         :list="items"
@@ -356,7 +229,7 @@ const isInputInsert = computed(() => {
             :has-sort-handle="isAdmin && items.length > 1"
             @expand="closeOtherItems"
             @delete="confirmRemoval"
-            @edit="editItem"
+            @edit="edit"
             @reserve="confirmReserved"
             @purchase="confirmPurchased"
           />
