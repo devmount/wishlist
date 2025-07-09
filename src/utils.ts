@@ -24,5 +24,5 @@ export const notify = (
   });
 
   document.body.append(alert);
-  return alert.toast();
+  return alert?.toast();
 };
