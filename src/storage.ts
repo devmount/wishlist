@@ -11,8 +11,11 @@ export const getAllFromStorage = (): List[] => {
  * Returns list index of found entry, otherwise -1
  */
 export const listIndex = (list: List): number => {
-  const lists = getAllFromStorage();
-  return lists.findIndex(e => e.slug_public == list.slug_public && e.slug_private == list.slug_private);
+  if (list) {
+    const lists = getAllFromStorage();
+    return lists.findIndex(e => e.slug_public == list.slug_public && e.slug_private == list.slug_private);
+  }
+  return -1;
 };
 
 /**

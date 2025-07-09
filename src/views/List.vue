@@ -42,6 +42,11 @@ const isAdmin = computed(() => {
 });
 
 onMounted(async () => {
+  // Handle supabase not being available
+  if (!supabase) {
+    loading.value = false;
+    return;
+  }
   // Initially get all existing items
   await getData();
 
