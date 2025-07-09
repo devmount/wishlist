@@ -24,5 +24,8 @@ export const notify = (
   });
 
   document.body.append(alert);
-  return alert.toast();
+
+  if (typeof alert.toast === 'function') {
+    alert?.toast();
+  }
 };
