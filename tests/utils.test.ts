@@ -30,4 +30,5 @@ test('toast notification custom appearance', async () => {
   expect(alert.duration).toBe(200);
   expect(alert.innerHTML).toContain('<strong>foo</strong>');
   expect(alert.innerHTML).toContain('bar');
+  alert.remove();
 });

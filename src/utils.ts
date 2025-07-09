@@ -25,7 +25,5 @@ export const notify = (
 
   document.body.append(alert);
 
-  if (typeof alert.toast === 'function') {
-    alert?.toast();
-  }
+  customElements.whenDefined('sl-alert').then(() => alert.toast());
 };
