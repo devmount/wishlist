@@ -23,7 +23,7 @@ export default defineConfig({
 		extensions: ['.ts', '.js', '.vue'],
 	},
 	test: {
-    globals: true,
-    environment: "jsdom",
-  },
+		globals: true,
+		environment: "jsdom",
+	},
 });
