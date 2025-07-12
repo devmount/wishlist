@@ -32,3 +32,16 @@ test('toast notification custom appearance', async () => {
   expect(alert.innerHTML).toContain('bar');
   alert.remove();
 });
+
+test('custom colored favicon', async () => {
+  const color = '#123456';
+  let link: HTMLLinkElement = document.querySelector("link[rel*='icon']")
+  let meta: HTMLMetaElement = document.querySelector("meta[name='theme-color']");
+  expect(link).toBeNull();
+  expect(meta).toBeNull();
+  utils.colorFavicon(color);
+  link = document.querySelector("link[rel*='icon']")
+  meta = document.querySelector("meta[name='theme-color']");
+  expect(link.href).toContain('data:image/svg+xml;base64');
+  expect(meta.content).toContain(color);
+});
