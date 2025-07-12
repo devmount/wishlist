@@ -7,7 +7,7 @@ import { Database } from '@/types/supabase';
 import { SlDialog, SlDetails } from '@shoelace-style/shoelace';
 import { List, Item } from '@/types/global';
 import { useRoute, useRouter } from 'vue-router';
-import { notify } from '@/utils';
+import { colorFavicon, notify } from '@/utils';
 
 // Components
 import Logo from '@/components/Logo.vue';
@@ -30,8 +30,8 @@ const supabase = inject<SupabaseClient<Database>>('supabase');
 const route = useRoute();
 const router = useRouter();
 
-const loading = ref(true); // Initially loading the page
-const processing = ref(false); // Loading async data in between
+const loading = ref(true); // Initially page loading indication
+const processing = ref(false); // Loading indication for async data in between
 const list = ref<List>(null);
 const items = ref<Item[]>([]);
 const dialogItem = ref<Item>(null);
@@ -91,8 +91,12 @@ const getData = async () => {
     console.error(error);
   }
   
-  // Query corresponding list items
+  // Query corresponding list items if list exists
   if (list.value?.id) {
+    // Color favicon
+    colorFavicon(list.value.color);
+
+    // Get items
     const { data: records, error: fail } = await supabase.from('items').select().eq('list', list.value.id)
     if (!fail) {
       items.value = records.sort((a,b) => a.weight - b.weight || Number(a.created < b.created));

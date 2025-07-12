@@ -9,6 +9,7 @@ import { useRouter } from 'vue-router';
 // Components
 import Logo from '@/components/Logo.vue';
 import ListCard from '@/components/cards/ListCard.vue';
+import { colorFavicon } from '@/utils';
 
 const router = useRouter();
 const supabase = inject<SupabaseClient<Database>>('supabase');
@@ -24,8 +25,9 @@ onMounted(() => {
   // Init list overview from local storage
   localLists.value = getAllFromStorage();
 
-  // Set browser title
+  // Set browser title and favicon
   document.title = 'Wishlist';
+  colorFavicon('#00abfd');
 });
 
 // Get random slug string
