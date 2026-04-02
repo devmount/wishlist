@@ -13,18 +13,18 @@ jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@v6
     - name: Use Node.js
-      uses: actions/setup-node@v4
+      uses: actions/setup-node@v6
       with:
-        node-version: '22.x'
+        node-version: 24
     - name: Build app
       run: |
         printf "VITE_SB_KEY=${{ secrets.SB_KEY }}\nVITE_SB_URL=${{ secrets.SB_URL }}" >> .env
         npm install
         npm run build
     - name: Push Build files to production
-      uses: burnett01/rsync-deployments@7.0.2
+      uses: burnett01/rsync-deployments@v8
       with:
         switches: -avzr --delete
         path: dist/
