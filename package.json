@@ -2,6 +2,7 @@
   "name": "wishlist",
   "version": "0.7.6",
   "private": true,
+  "type": "module",
   "scripts": {
     "dev": "vite",
     "build": "vite build",
