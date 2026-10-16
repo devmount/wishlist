@@ -15,7 +15,7 @@
     "@supabase/supabase-js": "^2.50.0",
     "sortablejs": "^1.15.6",
     "sortablejs-vue3": "^1.2.11",
-    "vue": "^3.2.27",
+    "vue": "^3.5.44",
     "vue-router": "^5.0.4"
   },
   "devDependencies": {
