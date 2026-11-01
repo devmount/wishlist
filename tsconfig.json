@@ -34,7 +34,9 @@
     // "rootDirs": [],                                   /* Allow multiple folders to be treated as one when resolving modules. */
     // "typeRoots": [],                                  /* Specify multiple folders that act like './node_modules/@types'. */
     "types": [
+      "node",
       "vite/client",
+      "@shoelace-style/shoelace",
       "./node_modules/@shoelace-style/shoelace/dist/types/vue/index.d.ts"
     ],                                                   /* Specify type package names to be included without being referenced in a source file. */
     // "allowUmdGlobalAccess": true,                     /* Allow accessing UMD globals from modules. */

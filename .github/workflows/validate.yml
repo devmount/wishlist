@@ -28,6 +28,10 @@ jobs:
         run: |
           pnpm lint --deny-warnings
 
+      - name: Type check
+        run: |
+          pnpm typecheck
+
       - name: Build frontend
         run: |
           pnpm build
