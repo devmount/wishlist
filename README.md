@@ -32,20 +32,20 @@ This is a little web app with a Vue3 frontend and a Supabase backend that enable
 3. Enter your new Supabase project, open the SQLeditor and run the content of `install.sql` provided in this repository
 4. Enable realtime functionality for both tables
 5. Fill the `.env.example` file with your Supabase credentials and rename it to `.env`
-6. Install dependencies with NPM
+6. Install dependencies with pnpm
 
     ```bash
-    npm i
+    pnpm install
     ```
 
 7. Compile and hot-reload for development ...
 
     ```bash
-    npm run dev
+    pnpm dev
     ```
 
 8. ... or compile and minify for production:
 
     ```bash
-    npm run build
+    pnpm build
     ```

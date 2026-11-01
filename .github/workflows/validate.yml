@@ -16,22 +16,22 @@ jobs:
   validate:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
 
-      - uses: actions/setup-node@v6
+      - name: Setup pnpm and Node.js, install dependencies
+        uses: pnpm/setup@v3
         with:
-          node-version: 24
-          cache: 'npm'
-          cache-dependency-path: 'package-lock.json'
+          runtime: node@26
+          cache: true
 
-      - name: Install dependencies
+      - name: Lint JS
         run: |
-          npm install
+          pnpm lint --deny-warnings
 
       - name: Build frontend
         run: |
-          npm run build
+          pnpm build
 
       - name: Test with vitest
         run: |
-          npm run test -- --run
+          pnpm test --run

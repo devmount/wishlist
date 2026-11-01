@@ -8,7 +8,8 @@
     "build": "vite build",
     "serve": "vite preview",
     "test": "vitest",
-    "coverage": "vitest run --coverage"
+    "coverage": "vitest run --coverage",
+    "lint": "oxlint"
   },
   "dependencies": {
     "@shoelace-style/shoelace": "^2.20.1",
@@ -20,16 +21,18 @@
   },
   "devDependencies": {
     "@vitejs/plugin-vue": "^6.0.0",
-    "@vitest/coverage-v8": "^4.1.2",
+    "@vitest/coverage-v8": "^5.0.5",
     "@vue/test-utils": "^2.4.6",
     "jsdom": "^29.0.1",
+    "oxlint": "^1.90.0",
     "typescript": "^6.0.2",
     "vite": "^8.3.4",
-    "vitest": "^4.1.2"
+    "vitest": "^5.0.5"
   },
   "browserslist": [
     "> 1%",
     "last 2 versions",
     "not dead"
-  ]
+  ],
+  "packageManager": "pnpm@12.16.1"
 }
