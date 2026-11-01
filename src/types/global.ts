@@ -1,5 +1,7 @@
 // Vite env
-declare const APP_VERSION: string;
+declare global {
+  const APP_VERSION: string;
+}
 
 // App level
 export type List = {
