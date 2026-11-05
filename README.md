@@ -15,11 +15,13 @@
 
 ## How does this work?
 
-This is a little web app with a Vue3 frontend and a Supabase backend that enables people to create wishlists without creating a user account. Every wishlist has a public link to share and a private link to manage. Everyone with the public link can reserver or by items in realtime. That's it.
+This is a little web app with a Vue3 frontend and a small PHP + MySQL backend that enables people to create wishlists without creating a user account. Every wishlist has a public link to share and a private link to manage. Everyone with the public link can reserve or buy items, and changes show up for everyone within a few seconds. That's it.
 
-*This app is still in development. As there is currently no security mechanism that keeps users from destroying the whole database, it's not yet ready to be used in production.*
+It runs on any ordinary webhosting with PHP and MySQL/MariaDB. No Node.js or other services are needed on the server.
 
-## How can I run this myself?
+## Local development
+
+Requirements: [ddev](https://ddev.com/) (provides PHP and MariaDB), Node.js and [pnpm](https://pnpm.io/).
 
 1. Clone this project and enter its root directory
 
@@ -28,24 +30,53 @@ This is a little web app with a Vue3 frontend and a Supabase backend that enable
     cd wishlist
     ```
 
-2. Create a new Supabase project on [app.supabase.io](https://app.supabase.io/)
-3. Enter your new Supabase project, open the SQLeditor and run the content of `install.sql` provided in this repository
-4. Enable realtime functionality for both tables
-5. Fill the `.env.example` file with your Supabase credentials and rename it to `.env`
-6. Install dependencies with pnpm
+2. Start the backend and create the database tables
+
+    ```bash
+    ddev start
+    ddev import-db --file=install.sql
+    ```
+
+3. Create the backend configuration. The defaults in `config.example.php` already match ddev.
+
+    ```bash
+    cp config.example.php public/config.php
+    ```
+
+4. Install dependencies and start the frontend with hot-reload. API requests to `/api.php` are proxied to `https://wishlist.ddev.site`.
 
     ```bash
     pnpm install
-    ```
-
-7. Compile and hot-reload for development ...
-
-    ```bash
     pnpm dev
     ```
 
-8. ... or compile and minify for production:
+5. Run tests, type checks and linting
+
+    ```bash
+    pnpm test
+    pnpm typecheck
+    pnpm lint
+    ```
+
+## Production
+
+1. Create a MySQL/MariaDB database on your server and import `install.sql` (e.g. via phpMyAdmin)
+2. Copy `config.example.php` to `config.php` in the web directory the app is deployed to (next to `api.php`), and enter your database credentials. The deployment excludes this file, so it is neither overwritten nor removed.
+3. Build the app and upload the content of `dist/` (including `api.php`) to the web directory
 
     ```bash
     pnpm build
     ```
+
+## Migrating from Supabase
+
+Older versions of this app used Supabase. To move existing wishlists over and keep all shared links working:
+
+1. In the Supabase dashboard, export the tables `lists` and `items` as CSV
+2. Convert them into an SQL file with the migration script (any local PHP works, e.g. via ddev)
+
+    ```bash
+    ddev exec php scripts/migrate.php lists.csv items.csv > migration.sql
+    ```
+
+3. Import `migration.sql` into the new database (e.g. via phpMyAdmin)

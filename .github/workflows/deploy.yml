@@ -25,7 +25,7 @@ jobs:
     - name: Push Build files to production
       uses: burnett01/rsync-deployments@v9
       with:
-        switches: -avzr --delete
+        switches: -avzr --delete --exclude=config.php
         path: dist/
         remote_path: ${{ secrets.DEPLOY_PATH }}
         remote_host: ${{ secrets.DEPLOY_HOST }}

@@ -3,7 +3,6 @@ node_modules
 /coverage
 /dist
 
-
 # environment files
 .env*
 !.env.example
@@ -22,3 +21,6 @@ pnpm-debug.log*
 *.njsproj
 *.sln
 *.sw?
+
+# Backend configuration
+/public/config.php
