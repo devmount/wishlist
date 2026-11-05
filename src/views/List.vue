@@ -37,9 +37,9 @@ const dialogItem = ref<Item>(null);
 const POLL_INTERVAL = 4000; // Milliseconds between checks for changes made by others
 let pollTimer: number;
 
-// Check if admin token is given and correct
+// Check if admin token is given and correct, the API only returns the private slug in that case
 const isAdmin = computed(() => {
-  return route.params.private !== '' && list.value?.slug_private === route.params.private;
+  return !!list.value?.slug_private;
 });
 
 onMounted(async () => {

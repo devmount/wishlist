@@ -1,5 +1,5 @@
 import { expect, test, beforeEach } from 'vitest'
-import { mount } from '@vue/test-utils'
+import { mount, flushPromises } from '@vue/test-utils'
 import { createRouter, createWebHistory, Router } from 'vue-router'
 import { routes } from "@/router"
 import App from '@/App.vue';
@@ -55,4 +55,54 @@ test('Private list not found page can be displayed', async () => {
     }
   });
   expect(wrapper.html()).toContain('404');
+});
+
+// Mock api returning a list, including the private slug only for admins
+const mockApi = (admin: boolean) => ({
+  getList: async () => ({
+    list: {
+      id: 1,
+      title: 'foo',
+      color: '#123456',
+      description: null,
+      slug_public: 'abc',
+      spoiler: false,
+      created: '2026-11-05T20:00:00Z',
+      modified: '2026-11-05T20:00:00.123456Z',
+      ...(admin ? { slug_private: 'xyz' } : {}),
+    },
+    items: [],
+  }),
+  getVersion: async () => '2026-11-05T20:00:00.123456Z',
+});
+
+test('Public list is displayed without admin controls', async () => {
+  router.push('/abc')
+  await router.isReady()
+
+  const wrapper = mount(App, {
+    global: {
+      plugins: [router],
+      provide: { ...provide, api: mockApi(false) },
+    }
+  });
+  await flushPromises();
+  expect(wrapper.html()).toContain('foo');
+  expect(wrapper.html()).not.toContain('Verwalte deine Wunschliste');
+  wrapper.unmount();
+});
+
+test('Private list is displayed with admin controls', async () => {
+  router.push('/abc/xyz')
+  await router.isReady()
+
+  const wrapper = mount(App, {
+    global: {
+      plugins: [router],
+      provide: { ...provide, api: mockApi(true) },
+    }
+  });
+  await flushPromises();
+  expect(wrapper.html()).toContain('Verwalte deine Wunschliste');
+  wrapper.unmount();
 });
