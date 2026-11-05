@@ -16,9 +16,7 @@
     "forceConsistentCasingInFileNames": true,
     "skipLibCheck": true,
 
-    "strict": true,
-    "noImplicitAny": false,
-    "strictNullChecks": false
+    "strict": true
   },
   "exclude": ["node_modules", "dist"]
 }

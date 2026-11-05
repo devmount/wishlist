@@ -18,7 +18,7 @@ interface Props {
 }
 const props = defineProps<Props>();
 
-const api = inject<Api>('api');
+const api = inject<Api>('api')!;
 const drawer = ref<SlDrawer>();
 const confirmListDeletion = ref(false);
 const input = ref({
@@ -46,7 +46,7 @@ const syncList = async () => {
       console.error(error);
       notify('Die Änderung konnte nicht gespeichert werden!', 'danger');
     }
-    drawer.value.hide();
+    drawer.value?.hide();
   }
 };
 
@@ -76,7 +76,7 @@ const deleteList = async () => {
 };
 
 // Open drawer
-const show = () => drawer.value.show();
+const show = () => drawer.value?.show();
 
 defineExpose({ show });
 </script>

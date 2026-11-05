@@ -37,7 +37,10 @@ const slugs = (list: List) => ({ public: list.slug_public, private: list.slug_pr
  * Get list with all its items. List contains the private slug only if given correctly.
  */
 export const getList = (slugPublic: string, slugPrivate?: string) => {
-  const params = slugPrivate ? { public: slugPublic, private: slugPrivate } : { public: slugPublic };
+  const params: Record<string, string> = { public: slugPublic };
+  if (slugPrivate) {
+    params.private = slugPrivate;
+  }
   return request<{ list: List, items: Item[] }>('list', params);
 };
 

@@ -28,7 +28,7 @@ test('if list exists', () => {
 });
 
 test('adding new list to storage', () => {
-  const storedList = storage.addToStorage(list);
+  const storedList = storage.addToStorage(list)!;
   expect(storedList).toBeTruthy();
   expect(storedList.id).toBeUndefined();
   expect(storedList.title).toBe('foo');

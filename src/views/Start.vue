@@ -11,7 +11,7 @@ import ListCard from '@/components/cards/ListCard.vue';
 import { colorFavicon } from '@/utils';
 
 const router = useRouter();
-const api = inject<Api>('api');
+const api = inject<Api>('api')!;
 
 const input = reactive({
   title: '',

@@ -15,14 +15,17 @@ interface Props {
 }
 const props = defineProps<Props>();
 
-const api = inject<Api>('api');
+const api = inject<Api>('api')!;
 const dialog = ref<SlDialog>();
 
 // Open dialog
-const show = () => dialog.value.show();
+const show = () => dialog.value?.show();
 
 // Set item state to purchased or open and close dialog
 const togglePurchased = async () => {
+  if (!props.item) {
+    return;
+  }
   const state = props.item.state === ItemState.Purchased ? ItemState.Open : ItemState.Purchased;
   try {
     await api.setState(props.list, props.item, state);
@@ -38,7 +41,7 @@ const togglePurchased = async () => {
     }
   }
   emit('changed');
-  dialog.value.hide();
+  dialog.value?.hide();
 };
 
 // Check item state
@@ -62,7 +65,7 @@ defineExpose({ show });
       Damit markierst du den Wunsch «{{ item?.title }}» für jeden sichtbar als gekauft.
     </div>
     <div slot="footer">
-      <sl-button variant="default" @click="dialog.hide()" class="mr-s" size="large">
+      <sl-button variant="default" @click="dialog?.hide()" class="mr-s" size="large">
         <sl-icon class="font-xl" slot="suffix" name="arrow-return-left"></sl-icon>
         Lieber nicht
       </sl-button>

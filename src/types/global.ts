@@ -17,7 +17,7 @@ export type List = {
 };
 
 export type Item = {
-  id?: number;
+  id: number;
   list: number;
   title: string;
   description: string | null;
