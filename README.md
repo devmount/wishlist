@@ -34,7 +34,7 @@ Requirements: [ddev](https://ddev.com/) (provides PHP and MariaDB), Node.js and 
 
     ```bash
     ddev start
-    ddev import-db --file=install.sql
+    ddev import-db --file=scripts/install.sql
     ```
 
 3. Create the backend configuration. The defaults in `config.example.php` already match ddev.
@@ -60,7 +60,7 @@ Requirements: [ddev](https://ddev.com/) (provides PHP and MariaDB), Node.js and 
 
 ## Production
 
-1. Create a MySQL/MariaDB database on your server and import `install.sql` (e.g. via phpMyAdmin)
+1. Create a MySQL/MariaDB database on your server and import `scripts/install.sql` (e.g. via phpMyAdmin)
 2. Copy `config.example.php` to `config.php` in the web directory the app is deployed to (next to `api.php`), and enter your database credentials. The deployment excludes this file, so it is neither overwritten nor removed.
 3. Build the app and upload the content of `dist/` (including `api.php`) to the web directory
 
@@ -72,11 +72,11 @@ Requirements: [ddev](https://ddev.com/) (provides PHP and MariaDB), Node.js and 
 
 Older versions of this app used Supabase. To move existing wishlists over and keep all shared links working:
 
-1. In the Supabase dashboard, export the tables `lists` and `items` as CSV
+1. In the Supabase dashboard, export the tables `lists` and `items` as CSV and put them in the project root
 2. Convert them into an SQL file with the migration script (any local PHP works, e.g. via ddev)
 
     ```bash
-    ddev exec php scripts/migrate.php lists.csv items.csv > migration.sql
+    ddev exec php scripts/migrate.php lists_rows.csv items_rows.csv > migration.sql
     ```
 
 3. Import `migration.sql` into the new database (e.g. via phpMyAdmin)

@@ -20,3 +20,7 @@ pnpm-debug.log*
 
 # Backend configuration
 /public/config.php
+
+# Exports and generated migration, contain personal data
+*.csv
+/migration.sql
