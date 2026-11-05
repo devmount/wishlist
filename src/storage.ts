@@ -32,12 +32,12 @@ export const listExists = (list: List | null): boolean => {
 export const addToStorage = (list: List | null): List | null => {
   const lists = getAllFromStorage();
   if (list && !listExists(list)) {
-    // Remove unwanted properties
-    delete list.id;
+    // Store a copy without unwanted properties, the given list stays untouched
+    const { id: _, ...entry } = list;
     // If that list doesn't exist yet, add and save it
-    lists.push(list);
+    lists.push(entry);
     localStorage.wishlists = JSON.stringify(lists);
-    return list;
+    return entry;
   }
   return null;
 };
