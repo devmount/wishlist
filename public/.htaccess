@@ -6,3 +6,8 @@
   RewriteCond %{REQUEST_FILENAME} !-d
   RewriteRule . /index.html [L]
 </IfModule>
+
+# Deny direct access to backend configuration and its backup copies
+<Files ~ "^config\.php">
+  Require all denied
+</Files>
