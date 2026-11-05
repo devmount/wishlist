@@ -18,9 +18,7 @@ export default defineConfig({
 	resolve: {
 		alias: {
 			'@': fileURLToPath(new URL('./src', import.meta.url)),
-			// 'shoelace': 'node_modules/@shoelace-style/shoelace',
 		},
-		extensions: ['.ts', '.js', '.vue'],
 	},
 	server: {
 		// Forward API requests to the local ddev backend

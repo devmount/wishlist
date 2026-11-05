@@ -31,10 +31,8 @@
     "vitest": "^5.1.0",
     "vue-tsc": "^3.3.14"
   },
-  "browserslist": [
-    "> 1%",
-    "last 2 versions",
-    "not dead"
-  ],
-  "packageManager": "pnpm@12.16.1"
+  "packageManager": "pnpm@12.16.1",
+  "engines": {
+    "node": ">=26"
+  }
 }
