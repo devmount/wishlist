@@ -1,10 +1,13 @@
+// Init UI components
+import '@/shoelace';
+
 // Init app
 import { createApp } from 'vue';
 import App from '@/App.vue';
 const app = createApp(App);
 
 // Init router
-import router from '@/router.js';
+import router from '@/router';
 app.use(router);
 
 // Backend API

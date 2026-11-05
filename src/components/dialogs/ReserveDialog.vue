@@ -15,14 +15,17 @@ interface Props {
 }
 const props = defineProps<Props>();
 
-const api = inject<Api>('api');
+const api = inject<Api>('api')!;
 const dialog = ref<SlDialog>();
 
 // Open dialog
-const show = () => dialog.value.show();
+const show = () => dialog.value?.show();
 
 // Set item state to reserved or open and close dialog
 const toggleReserved = async () => {
+  if (!props.item) {
+    return;
+  }
   const state = props.item.state === ItemState.Reserved ? ItemState.Open : ItemState.Reserved;
   try {
     await api.setState(props.list, props.item, state);
@@ -44,7 +47,7 @@ const toggleReserved = async () => {
     }
   }
   emit('changed');
-  dialog.value.hide();
+  dialog.value?.hide();
 };
 
 // Check item state
@@ -69,7 +72,7 @@ defineExpose({ show });
       <strong>Bitte merke dir deine Reservierungen gut, damit du sie später nocht weißt!</strong>
     </div>
     <div slot="footer">
-      <sl-button variant="default" @click="dialog.hide()" class="mr-s" size="large">
+      <sl-button variant="default" @click="dialog?.hide()" class="mr-s" size="large">
         <sl-icon class="font-xl" slot="suffix" name="arrow-return-left"></sl-icon>
         Lieber nicht
       </sl-button>

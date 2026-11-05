@@ -13,7 +13,7 @@ interface Props {
 }
 const props = defineProps<Props>();
 
-const api = inject<Api>('api');
+const api = inject<Api>('api')!;
 const initItem = computed(() => ({
   title: '',
   price: '',
@@ -24,7 +24,7 @@ const initItem = computed(() => ({
 const input = ref({
   data: {} as Item,
   mode: InputMode.Insert,
-  target: null as number,
+  target: null as number | null,
 });
 
 // Edit existing item
@@ -47,7 +47,7 @@ const syncItem = async () => {
       if (input.value.mode === InputMode.Insert) {
         await api.createItem(props.list, i);
         notify('Wunsch hinzugefügt!', 'success');
-      } else {
+      } else if (input.value.target !== null) {
         await api.updateItem(props.list, input.value.target, i);
         notify('Wunsch erfolgreich aktualisiert!', 'success');
       }

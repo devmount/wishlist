@@ -25,15 +25,15 @@ const dialogPurchase = ref<SlDialog>();
 const dialogReserve = ref<SlDialog>();
 const dialogDelete = ref<SlDialog>();
 
-const api = inject<Api>('api');
+const api = inject<Api>('api')!;
 const route = useRoute();
 const router = useRouter();
 
 const loading = ref(true); // Initially page loading indication
 const processing = ref(false); // Loading indication for async data in between
-const list = ref<List>(null);
+const list = ref<List | null>(null);
 const items = ref<Item[]>([]);
-const dialogItem = ref<Item>(null);
+const dialogItem = ref<Item | null>(null);
 const POLL_INTERVAL = 4000; // Milliseconds between checks for changes made by others
 let pollTimer: number;
 
@@ -117,19 +117,19 @@ const edit = (item: Item) => {
 // Open dialog for reservation confirmation
 const confirmReserved = (item: Item) => {
   dialogItem.value = item;
-  dialogReserve.value.show();
+  dialogReserve.value?.show();
 };
 
 // Open dialog for purchase confirmation
 const confirmPurchased = (item: Item) => {
   dialogItem.value = item;
-  dialogPurchase.value.show();
+  dialogPurchase.value?.show();
 };
 
 // Open dialog for item removal confirmation
 const confirmRemoval = (item: Item) => {
   dialogItem.value = item;
-  dialogDelete.value.show();
+  dialogDelete.value?.show();
 };
 
 // Send given text as body content in new email
@@ -139,13 +139,16 @@ const sendEmail = (text: string) => {
 
 // Close all other list items if one is shown
 const closeOtherItems = (index: number) => {
-  [...wishlist.value.querySelectorAll('sl-details')].forEach(
+  [...(wishlist.value?.querySelectorAll('sl-details') ?? [])].forEach(
     (item: SlDetails, position: number) => (item.open = position == index)
   );
 };
 
 // Update the order of items
-const saveOrder = async (event) => {
+const saveOrder = async (event: { oldIndex: number, newIndex: number }) => {
+  if (!list.value) {
+    return;
+  }
   // Locally set the new order
   const movedItem = items.value.splice(event.oldIndex, 1)[0];
   items.value.splice(event.newIndex, 0, movedItem);
@@ -183,7 +186,7 @@ const visitor = computed(() => {
 
 // Approve if something is allowed to be shown
 const allowed = computed(() => {
-  return visitor.value || list.value?.spoiler
+  return !!(visitor.value || list.value?.spoiler)
 });
 
 // Prived accent color once list color is loaded

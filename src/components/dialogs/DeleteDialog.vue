@@ -15,14 +15,17 @@ interface Props {
 }
 const props = defineProps<Props>();
 
-const api = inject<Api>('api');
+const api = inject<Api>('api')!;
 const dialog = ref<SlDialog>();
 
 // Open dialog
-const show = () => dialog.value.show();
+const show = () => dialog.value?.show();
 
 // Delete existing item
 const deleteItem = async () => {
+  if (!props.item) {
+    return;
+  }
   try {
     await api.deleteItem(props.list, props.item.id);
     notify('Der Wunsch wurde erfolgreich gelöscht!', 'success');
@@ -31,7 +34,7 @@ const deleteItem = async () => {
     console.error(error);
     notify('Der Wunsch konnte nicht gelöscht werden!', 'danger');
   }
-  dialog.value.hide();
+  dialog.value?.hide();
 };
 
 defineExpose({ show });
@@ -46,7 +49,7 @@ defineExpose({ show });
       Damit entfernst den Wunsch «{{ item?.title }}». Dieses Aktion kann nicht rückgängig gemacht werden.
     </div>
     <div slot="footer">
-      <sl-button variant="default" @click="dialog.hide()" class="mr-s" size="large">
+      <sl-button variant="default" @click="dialog?.hide()" class="mr-s" size="large">
         <sl-icon class="font-xl" slot="suffix" name="arrow-return-left"></sl-icon>
         Lieber nicht
       </sl-button>
