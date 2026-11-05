@@ -1,0 +1,8 @@
+name: wishlist
+type: php
+docroot: public
+php_version: "8.4"
+webserver_type: nginx-fpm
+database:
+  type: mariadb
+  version: "11.8"

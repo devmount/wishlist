@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed } from 'vue';
-import { getBaseUrl } from '@/utils';
+import { getBaseUrl, isSafeUrl } from '@/utils';
 import { Item, ItemState } from '@/types/global';
 
 // Component emits
@@ -15,6 +15,11 @@ interface Props {
   hasSortHandle: boolean, // True, if a sort handle should show up
 }
 const props = defineProps<Props>();
+
+// Only show http(s) links
+const safeLinks = computed(() => {
+  return (props.item.links ?? []).filter(isSafeUrl);
+});
 
 // Check item states
 const isItemReserved = computed(() => {
@@ -54,9 +59,9 @@ const isItemPurchased = computed(() => {
       <!-- Item information -->
       <main class="d-flex-column gap-m mb-m">
         <div v-if="item.description" class="pre-line">{{ item.description }}</div>
-        <div v-if="item.links?.length">
+        <div v-if="safeLinks.length">
           <div>Hier kann man das kaufen:</div>
-          <a v-for="l in item.links" :key="l" class="d-flex align-items-center" :href="l" target="_blank">
+          <a v-for="l in safeLinks" :key="l" class="d-flex align-items-center" :href="l" target="_blank">
             <sl-icon name="link-45deg" class="shrink-0 font-l mt-3xs mr-xs"></sl-icon>
             <span class="text-overflow-ellipsis">{{ getBaseUrl(l) }}</span>
           </a>

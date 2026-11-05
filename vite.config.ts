@@ -22,6 +22,16 @@ export default defineConfig({
 		},
 		extensions: ['.ts', '.js', '.vue'],
 	},
+	server: {
+		// Forward API requests to the local ddev backend
+		proxy: {
+			'/api.php': {
+				target: 'https://wishlist.ddev.site',
+				changeOrigin: true,
+				secure: false,
+			},
+		},
+	},
 	test: {
 		globals: true,
 		environment: "jsdom",

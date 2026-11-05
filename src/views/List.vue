@@ -2,8 +2,7 @@
 import { computed, inject, onMounted, onUnmounted, ref } from 'vue';
 import { addToStorage } from "@/storage";
 import { Sortable } from "sortablejs-vue3";
-import { SupabaseClient } from '@supabase/supabase-js';
-import { Database } from '@/types/supabase';
+import { Api, ApiError } from '@/api';
 import { SlDialog, SlDetails } from '@shoelace-style/shoelace';
 import { List, Item } from '@/types/global';
 import { useRoute, useRouter } from 'vue-router';
@@ -26,7 +25,7 @@ const dialogPurchase = ref<SlDialog>();
 const dialogReserve = ref<SlDialog>();
 const dialogDelete = ref<SlDialog>();
 
-const supabase = inject<SupabaseClient<Database>>('supabase');
+const api = inject<Api>('api');
 const route = useRoute();
 const router = useRouter();
 
@@ -35,27 +34,26 @@ const processing = ref(false); // Loading indication for async data in between
 const list = ref<List>(null);
 const items = ref<Item[]>([]);
 const dialogItem = ref<Item>(null);
+const POLL_INTERVAL = 4000; // Milliseconds between checks for changes made by others
+let pollTimer: number;
 
-// Check if admin token is given and correct
+// Check if admin token is given and correct, the API only returns the private slug in that case
 const isAdmin = computed(() => {
-  return route.params.private !== '' && list.value?.slug_private === route.params.private;
+  return !!list.value?.slug_private;
 });
 
 onMounted(async () => {
-  // Handle supabase not being available
-  if (!supabase) {
+  // Handle api not being available
+  if (!api) {
     loading.value = false;
     return;
   }
   // Initially get all existing items
   await getData();
 
-  // Subscribe to all changes on the lists table and the items table to provide realtime experience
-  supabase.channel('room').on(
-    'postgres_changes',
-    { event: '*', schema: '*' },
-    async () => { await getData(); }
-  ).subscribe();
+  // Regularly check for changes made by others to provide a realtime experience
+  pollTimer = window.setInterval(poll, POLL_INTERVAL);
+  document.addEventListener('visibilitychange', poll);
 
   // Set browser title
   document.title = isAdmin.value
@@ -72,40 +70,43 @@ onMounted(async () => {
 });
 
 onUnmounted(() => {
-  // Unsubscribe from active channels
-  supabase.removeAllChannels();
+  // Stop checking for changes
+  window.clearInterval(pollTimer);
+  document.removeEventListener('visibilitychange', poll);
 });
 
 // Retrieve requested data
 const getData = async () => {
   processing.value = true;
 
-  // Query list by route
-  const { data, error } = await supabase
-    .from('lists')
-    .select()
-    .eq('slug_public', route.params.public as string);
-  if (!error) {
-    list.value = data[0] ?? null;
-  } else {
-    console.error(error);
-  }
-  
-  // Query corresponding list items if list exists
-  if (list.value?.id) {
-    // Color favicon
+  // Query list with its items by route, private slug is only returned if correct
+  try {
+    const data = await api.getList(route.params.public as string, route.params.private as string);
+    list.value = data.list;
+    items.value = data.items;
     colorFavicon(list.value.color);
-
-    // Get items
-    const { data: records, error: fail } = await supabase.from('items').select().eq('list', list.value.id)
-    if (!fail) {
-      items.value = records.sort((a,b) => a.weight - b.weight || Number(a.created < b.created));
+  } catch (error) {
+    if (error instanceof ApiError && error.status === 404) {
+      list.value = null;
+      items.value = [];
     } else {
-      console.error(fail);
+      console.error(error);
     }
   }
 
   processing.value = false;
+};
+
+// Reload data if the list was changed since last load. Skipped while tab is hidden.
+const poll = async () => {
+  if (document.hidden || processing.value) {
+    return;
+  }
+  // A failed check (e.g. list deleted) also triggers a reload, which handles the error
+  const version = await api.getVersion(route.params.public as string).catch(() => null);
+  if (version !== list.value?.modified) {
+    await getData();
+  }
 };
 
 // Edit existing item
@@ -145,28 +146,19 @@ const closeOtherItems = (index: number) => {
 
 // Update the order of items
 const saveOrder = async (event) => {
-  let errorOccured = false;
-  
   // Locally set the new order
   const movedItem = items.value.splice(event.oldIndex, 1)[0];
   items.value.splice(event.newIndex, 0, movedItem);
-  
-  // Now sync the new weights for each item where the weight has changed
-  for (const [i, item] of items.value.entries()) {
-    if (item.weight !== i) {
-      const { error } = await supabase.from('items').update({ weight: i }).eq('id', item.id).select()
-      if (error) {
-        errorOccured = true;
-        console.error(error);
-      }
-    }
-  }
-  // Toast success
-  if (!errorOccured) {
+
+  // Now sync the new order
+  try {
+    await api.reorder(list.value, items.value.map(i => i.id));
     notify('Gespeichert!', 'success');
-  } else {
+  } catch (error) {
+    console.error(error);
     notify('Die Änderung konnte nicht gespeichert werden!', 'danger');
   }
+  await getData();
 };
 
 // Return base url
@@ -198,11 +190,6 @@ const allowed = computed(() => {
 const accent = computed(() => {
   return list.value?.color ?? '#000000'
 });
-
-// Calculate the maximum existing weight
-const maxWeight = computed(() => {
-  return Math.max(...items.value.map(i => i.weight)) + 1;
-});
 </script>
 
 <template>
@@ -223,7 +210,7 @@ const maxWeight = computed(() => {
     </header>
 
     <!-- Form to add or edit items -->
-    <item-form v-if="isAdmin" ref="itemForm" :list="list" :max-weight="maxWeight" />
+    <item-form v-if="isAdmin" ref="itemForm" :list="list" @changed="getData" />
 
     <!-- Sortable item list -->
     <section ref="wishlist" class="mb-3xl">
@@ -317,16 +304,16 @@ const maxWeight = computed(() => {
     </div>
 
     <!-- Admin area for managing the list -->
-    <admin-drawer ref="drawer" :list="list" />
+    <admin-drawer ref="drawer" :list="list" @changed="getData" />
 
     <!-- Dialog: item state handling reservation -->
-    <reserve-dialog ref="dialogReserve" :item="dialogItem" />
+    <reserve-dialog ref="dialogReserve" :list="list" :item="dialogItem" @changed="getData" />
 
     <!-- Dialog: item state handling reservation -->
-    <purchase-dialog ref="dialogPurchase" :item="dialogItem" />
+    <purchase-dialog ref="dialogPurchase" :list="list" :item="dialogItem" @changed="getData" />
 
     <!-- Dialog: item removal -->
-    <delete-dialog ref="dialogDelete" :item="dialogItem" />
+    <delete-dialog ref="dialogDelete" :list="list" :item="dialogItem" @changed="getData" />
   </div>
 
   <!-- 404 -->

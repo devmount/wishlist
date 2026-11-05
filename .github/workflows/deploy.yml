@@ -19,13 +19,11 @@ jobs:
       with:
         runtime: node@26
     - name: Build app
-      run: |
-        printf "VITE_SB_KEY=${{ secrets.SB_KEY }}\nVITE_SB_URL=${{ secrets.SB_URL }}" >> .env
-        pnpm build
+      run: pnpm build
     - name: Push Build files to production
       uses: burnett01/rsync-deployments@v9
       with:
-        switches: -avzr --delete
+        switches: -avzr --delete --exclude=config.php
         path: dist/
         remote_path: ${{ secrets.DEPLOY_PATH }}
         remote_host: ${{ secrets.DEPLOY_HOST }}

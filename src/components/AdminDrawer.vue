@@ -3,15 +3,14 @@ import { List } from '@/types/global';
 import { ref, inject, onMounted } from 'vue';
 import { useRouter } from 'vue-router';
 import { SlDrawer } from '@shoelace-style/shoelace';
-import { SupabaseClient } from '@supabase/supabase-js';
-import { Database } from '@/types/supabase';
+import { Api } from '@/api';
 import { notify } from '@/utils';
 import { updateInStorage, removeFromStorage } from "@/storage";
 
 const router = useRouter();
 
 // Component emits
-const emit = defineEmits(['delete']);
+const emit = defineEmits(['changed']);
 
 // Component properties
 interface Props {
@@ -19,7 +18,7 @@ interface Props {
 }
 const props = defineProps<Props>();
 
-const supabase = inject<SupabaseClient<Database>>('supabase');
+const api = inject<Api>('api');
 const drawer = ref<SlDrawer>();
 const confirmListDeletion = ref(false);
 const input = ref({
@@ -38,11 +37,12 @@ onMounted(() => {
 // Save list
 const syncList = async () => {
   if (input.value.title) {
-    const { data, error } = await supabase.from('lists').update(input.value).eq('id', props.list.id ).select();
-    if (!error) {
-      updateInStorage(data[0]);
+    try {
+      const list = await api.updateList(props.list, input.value);
+      updateInStorage(list);
       notify('Gespeichert!', 'success');
-    } else {
+      emit('changed');
+    } catch (error) {
       console.error(error);
       notify('Die Änderung konnte nicht gespeichert werden!', 'danger');
     }
@@ -52,22 +52,24 @@ const syncList = async () => {
 
 // Handle spoiler changes
 const toggleSpoiler = async () => {
-  const { error } = await supabase.from('lists').update({ spoiler: !props.list.spoiler }).eq('id', props.list.id);
-  if (!error) {
+  try {
+    await api.updateList(props.list, { spoiler: !props.list.spoiler });
     notify('Gespeichert!', 'success');
-  } else {
+    emit('changed');
+  } catch (error) {
+    console.error(error);
     notify('Die Änderung konnte nicht gespeichert werden!', 'danger');
   }
 };
 
 // Delete existing item
 const deleteList = async () => {
-  const { error } = await supabase.from('lists').delete().eq('id', props.list.id)
-  if (!error) {
+  try {
+    await api.deleteList(props.list);
     removeFromStorage(props.list);
     notify('Erfolgreich gelöscht!', 'success');
     router.push({ name: 'start' });
-  } else {
+  } catch (error) {
     console.error(error);
     notify('Die List konnte nicht gelöscht werden!', 'danger');
   }

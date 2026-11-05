@@ -1,21 +1,21 @@
 <script setup lang="ts">
-import { Item, ItemState } from '@/types/global';
+import { Item, ItemState, List } from '@/types/global';
 import { ref, inject, computed } from 'vue';
 import { SlDialog } from '@shoelace-style/shoelace';
-import { SupabaseClient } from '@supabase/supabase-js';
-import { Database } from '@/types/supabase';
+import { Api, ApiError } from '@/api';
 import { notify } from '@/utils';
 
 // Component emits
-const emit = defineEmits(['delete']);
+const emit = defineEmits(['changed']);
 
 // Component properties
 interface Props {
+  list: List,
   item: Item|null,
 }
 const props = defineProps<Props>();
 
-const supabase = inject<SupabaseClient<Database>>('supabase');
+const api = inject<Api>('api');
 const dialog = ref<SlDialog>();
 
 // Open dialog
@@ -24,8 +24,8 @@ const show = () => dialog.value.show();
 // Set item state to reserved or open and close dialog
 const toggleReserved = async () => {
   const state = props.item.state === ItemState.Reserved ? ItemState.Open : ItemState.Reserved;
-  const { error } = await supabase.from('items').update({ state: state }).eq('id', props.item.id);
-  if (!error) {
+  try {
+    await api.setState(props.list, props.item, state);
     if (state === ItemState.Reserved) {
       notify(
         'Erfolgreich reserviert!',
@@ -35,10 +35,15 @@ const toggleReserved = async () => {
         6000
       );
     }
-  } else {
-    console.error(error);
-    notify('Der Reservierungs-Status konnte nicht gespeichert werden!', 'danger');
+  } catch (error) {
+    if (error instanceof ApiError && error.status === 409) {
+      notify('Dieser Wunsch wurde gerade von jemand anderem geändert!', 'warning', 'Bitte prüfe den aktuellen Status.');
+    } else {
+      console.error(error);
+      notify('Der Reservierungs-Status konnte nicht gespeichert werden!', 'danger');
+    }
   }
+  emit('changed');
   dialog.value.hide();
 };
 

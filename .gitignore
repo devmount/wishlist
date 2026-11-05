@@ -3,11 +3,6 @@ node_modules
 /coverage
 /dist
 
-
-# environment files
-.env*
-!.env.example
-
 # Log files
 npm-debug.log*
 yarn-debug.log*
@@ -22,3 +17,10 @@ pnpm-debug.log*
 *.njsproj
 *.sln
 *.sw?
+
+# Backend configuration
+/public/config.php
+
+# Exports and generated migration, contain personal data
+*.csv
+/migration.sql
