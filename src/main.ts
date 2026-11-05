@@ -1,3 +1,6 @@
+// Init UI components
+import '@/shoelace';
+
 // Init app
 import { createApp } from 'vue';
 import App from '@/App.vue';

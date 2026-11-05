@@ -18,6 +18,8 @@ export default defineConfig({
 	resolve: {
 		alias: {
 			'@': fileURLToPath(new URL('./src', import.meta.url)),
+			// Shoelace doesn't export its icons as package paths, so they are referenced by file path
+			'@shoelace-icons': fileURLToPath(new URL('./node_modules/@shoelace-style/shoelace/dist/assets/icons', import.meta.url)),
 		},
 	},
 	server: {
