@@ -106,3 +106,56 @@ test('Private list is displayed with admin controls', async () => {
   expect(wrapper.html()).toContain('Verwalte deine Wunschliste');
   wrapper.unmount();
 });
+
+test('Opening an admin link adds the list to local storage', async () => {
+  localStorage.clear();
+  router.push('/abc/xyz')
+  await router.isReady()
+
+  const wrapper = mount(App, {
+    global: {
+      plugins: [router],
+      provide: { ...provide, api: mockApi(true) },
+    }
+  });
+  await flushPromises();
+  const stored = JSON.parse(localStorage.wishlists ?? '[]');
+  expect(stored).toHaveLength(1);
+  expect(stored[0].slug_public).toBe('abc');
+  expect(stored[0].slug_private).toBe('xyz');
+  wrapper.unmount();
+});
+
+test('Opening a public link does not add the list to local storage', async () => {
+  localStorage.clear();
+  router.push('/abc')
+  await router.isReady()
+
+  const wrapper = mount(App, {
+    global: {
+      plugins: [router],
+      provide: { ...provide, api: mockApi(false) },
+    }
+  });
+  await flushPromises();
+  expect(localStorage.wishlists).toBeUndefined();
+  wrapper.unmount();
+});
+
+test('Admin edit form stays visible when the list is stored on first visit', async () => {
+  localStorage.clear();
+  router.push('/abc/xyz')
+  await router.isReady()
+
+  const wrapper = mount(App, {
+    global: {
+      plugins: [router],
+      provide: { ...provide, api: mockApi(true) },
+    }
+  });
+  await flushPromises();
+  const html = wrapper.html();
+  const form = html.slice(html.indexOf('Bearbeite deine Wunschliste'), html.indexOf('Speichern'));
+  expect(form).not.toContain('<!--v-if-->');
+  wrapper.unmount();
+});

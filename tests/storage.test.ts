@@ -37,6 +37,14 @@ test('adding new list to storage', () => {
   expect(storage.listExists(storedList)).toBe(true);
 });
 
+test('adding list to storage does not modify the given list', () => {
+  localStorage.clear();
+  const given = { ...structuredClone(list), id: 42 };
+  storage.addToStorage(given);
+  expect(given.id).toBe(42);
+  expect(storage.getAllFromStorage()[0].id).toBeUndefined();
+});
+
 test('adding existing list to storage', () => {
   expect(storage.addToStorage(storage.getAllFromStorage()[0])).toBeNull();
 });
