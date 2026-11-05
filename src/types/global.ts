@@ -13,6 +13,7 @@ export type List = {
   slug_private?: string;
   spoiler?: boolean;
   created?: string;
+  modified?: string;
 };
 
 export type Item = {

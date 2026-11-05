@@ -6,7 +6,7 @@ import App from '@/App.vue';
 
 const provide = {
   version: '0.1.2',
-  supabase: null,
+  api: null,
 };
 
 let router: Router;

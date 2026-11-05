@@ -1,21 +1,21 @@
 <script setup lang="ts">
-import { Item } from '@/types/global';
+import { Item, List } from '@/types/global';
 import { ref, inject } from 'vue';
 import { SlDialog } from '@shoelace-style/shoelace';
-import { SupabaseClient } from '@supabase/supabase-js';
-import { Database } from '@/types/supabase';
+import { Api } from '@/api';
 import { notify } from '@/utils';
 
 // Component emits
-const emit = defineEmits(['delete']);
+const emit = defineEmits(['changed']);
 
 // Component properties
 interface Props {
+  list: List,
   item: Item|null,
 }
 const props = defineProps<Props>();
 
-const supabase = inject<SupabaseClient<Database>>('supabase');
+const api = inject<Api>('api');
 const dialog = ref<SlDialog>();
 
 // Open dialog
@@ -23,10 +23,11 @@ const show = () => dialog.value.show();
 
 // Delete existing item
 const deleteItem = async () => {
-  const { error } = await supabase.from('items').delete().match({ id: props.item.id });
-  if (!error) {
+  try {
+    await api.deleteItem(props.list, props.item.id);
     notify('Der Wunsch wurde erfolgreich gelöscht!', 'success');
-  } else {
+    emit('changed');
+  } catch (error) {
     console.error(error);
     notify('Der Wunsch konnte nicht gelöscht werden!', 'danger');
   }

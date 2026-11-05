@@ -1,27 +1,24 @@
 <script setup lang="ts">
 import { InputMode, Item, List } from '@/types/global';
 import { ref, inject, computed } from 'vue';
-import { SupabaseClient } from '@supabase/supabase-js';
-import { Database } from '@/types/supabase';
+import { Api } from '@/api';
 import { notify } from '@/utils';
 
 // Component emits
-const emit = defineEmits(['delete']);
+const emit = defineEmits(['changed']);
 
 // Component properties
 interface Props {
   list: List,
-  maxWeight: number,
 }
 const props = defineProps<Props>();
 
-const supabase = inject<SupabaseClient<Database>>('supabase');
+const api = inject<Api>('api');
 const initItem = computed(() => ({
   title: '',
   price: '',
   description: '',
   links: '',
-  list: props.list?.id,
 }));
 
 const input = ref({
@@ -46,29 +43,18 @@ const syncItem = async () => {
     let i = JSON.parse(JSON.stringify(input.value.data));
     i.links = i.links ? i.links.split('\n').map((l: string) => l.trim()) : [];
     // Check if new or edited item
-    switch (input.value.mode) {
-      case InputMode.Insert:
-        i.list = props.list.id;
-        i.weight = props.maxWeight+1;
-        const { error: insertError } = await supabase.from('items').insert(i)
-        if (!insertError) {
-          notify('Wunsch hinzugefügt!', 'success');
-        } else {
-          console.error(insertError);
-          notify('Die Änderung konnte nicht gespeichert werden!', 'danger');
-        }
-        break;
-      case InputMode.Update:
-        const { error: updateError } = await supabase.from('items').update(i).eq('id', input.value.target)
-        if (!updateError) {
-          notify('Wunsch erfolgreich aktualisiert!', 'success');
-        } else {
-          console.error(updateError);
-          notify('Die Änderung konnte nicht gespeichert werden!', 'danger');
-        }
-        break;
-      default:
-        break;
+    try {
+      if (input.value.mode === InputMode.Insert) {
+        await api.createItem(props.list, i);
+        notify('Wunsch hinzugefügt!', 'success');
+      } else {
+        await api.updateItem(props.list, input.value.target, i);
+        notify('Wunsch erfolgreich aktualisiert!', 'success');
+      }
+      emit('changed');
+    } catch (error) {
+      console.error(error);
+      notify('Die Änderung konnte nicht gespeichert werden!', 'danger');
     }
     // Reset form
     resetItemInput();
