@@ -1,7 +1,24 @@
-// Extract the hostname from a given url
+// Extract the hostname from a given url, returns the input if it's not a valid url
 export const getBaseUrl = (url: string) => {
-  const obj = new URL(url);
-  return obj.hostname;
+  try {
+    return new URL(url).hostname;
+  } catch {
+    return url;
+  }
+};
+
+// Prefix url with https:// if it has no http(s) protocol, e.g. for "amazon.de/..."
+export const normalizeUrl = (url: string) => {
+  return /^https?:\/\//i.test(url) ? url : 'https://' + url;
+};
+
+// Check if given url is a valid http(s) url, prevents e.g. javascript: links
+export const isSafeUrl = (url: string) => {
+  try {
+    return ['http:', 'https:'].includes(new URL(url).protocol);
+  } catch {
+    return false;
+  }
 };
 
 // Show a toast notification using Shoelace Alert component

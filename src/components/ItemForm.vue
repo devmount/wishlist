@@ -2,7 +2,7 @@
 import { InputMode, Item, List } from '@/types/global';
 import { ref, inject, computed } from 'vue';
 import { Api } from '@/api';
-import { notify } from '@/utils';
+import { normalizeUrl, notify } from '@/utils';
 
 // Component emits
 const emit = defineEmits(['changed']);
@@ -41,7 +41,7 @@ const syncItem = async () => {
   if (input.value.data.title) {
     // If valid input: get and preprocess item data
     let i = JSON.parse(JSON.stringify(input.value.data));
-    i.links = i.links ? i.links.split('\n').map((l: string) => l.trim()) : [];
+    i.links = i.links ? i.links.split('\n').map((l: string) => l.trim()).filter((l: string) => l).map(normalizeUrl) : [];
     // Check if new or edited item
     try {
       if (input.value.mode === InputMode.Insert) {

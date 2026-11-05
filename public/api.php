@@ -84,6 +84,14 @@ class Api
 	private const LIST_FIELDS = ['title', 'color', 'description', 'spoiler'];
 	private const ITEM_FIELDS = ['title', 'price', 'description', 'links'];
 
+	// Limits for client input
+	private const MAX_TITLE = 200;
+	private const MAX_DESCRIPTION = 5000;
+	private const MAX_PRICE = 50;
+	private const MAX_LINKS = 10;
+	private const MAX_LINK_LENGTH = 2048;
+	private const MAX_ITEMS = 200;
+
 	public function __construct(private PDO $db) {}
 
 	// Execute given action and return response data
@@ -107,7 +115,7 @@ class Api
 	private function getList(array $input): array
 	{
 		$list = $this->findList($input);
-		$admin = hash_equals($list['slug_private'], (string) ($input['private'] ?? ''));
+		$admin = hash_equals($list['slug_private'], $this->param($input, 'private'));
 		$stmt = $this->db->prepare('SELECT * FROM items WHERE list = ? ORDER BY weight, created DESC');
 		$stmt->execute([$list['id']]);
 		return [
@@ -126,19 +134,12 @@ class Api
 	// Create new list with random slugs
 	private function createList(array $input): array
 	{
-		if (empty($input['title'])) {
+		if (!isset($input['title'])) {
 			throw new ApiException(400, 'Title required');
 		}
-		$stmt = $this->db->prepare(
-			'INSERT INTO lists (title, color, description, slug_public, slug_private) VALUES (?, ?, ?, ?, ?)'
-		);
-		$stmt->execute([
-			$input['title'],
-			$input['color'] ?? '#0ea5e9',
-			$input['description'] ?? null,
-			generateSlug(10),
-			generateSlug(16),
-		]);
+		[$sets, $params] = $this->assignments($input, self::LIST_FIELDS);
+		$this->db->prepare("INSERT INTO lists SET $sets, slug_public = :slug_public, slug_private = :slug_private")
+			->execute([...$params, 'slug_public' => generateSlug(10), 'slug_private' => generateSlug(16)]);
 		return $this->formatList($this->fetchList((int) $this->db->lastInsertId()), true);
 	}
 
@@ -165,9 +166,14 @@ class Api
 	private function createItem(array $input): array
 	{
 		$list = $this->findAdminList($input);
-		$item = $input['item'] ?? [];
-		if (empty($item['title'])) {
+		$item = $this->data($input, 'item');
+		if (!isset($item['title'])) {
 			throw new ApiException(400, 'Title required');
+		}
+		$stmt = $this->db->prepare('SELECT COUNT(*) FROM items WHERE list = ?');
+		$stmt->execute([$list['id']]);
+		if ($stmt->fetchColumn() >= self::MAX_ITEMS) {
+			throw new ApiException(400, 'Too many items');
 		}
 		[$sets, $params] = $this->assignments($item, self::ITEM_FIELDS);
 		$this->db->prepare(
@@ -183,10 +189,10 @@ class Api
 	private function updateItem(array $input): array
 	{
 		$list = $this->findAdminList($input);
-		[$sets, $params] = $this->assignments($input['item'] ?? [], self::ITEM_FIELDS);
+		[$sets, $params] = $this->assignments($this->data($input, 'item'), self::ITEM_FIELDS);
 		if ($sets) {
 			$this->db->prepare("UPDATE items SET $sets WHERE id = :id AND list = :list")
-				->execute([...$params, 'id' => (int) ($input['id'] ?? 0), 'list' => $list['id']]);
+				->execute([...$params, 'id' => $this->id($input), 'list' => $list['id']]);
 			$this->touchList($list['id']);
 		}
 		return ['updated' => true];
@@ -197,7 +203,7 @@ class Api
 	{
 		$list = $this->findAdminList($input);
 		$this->db->prepare('DELETE FROM items WHERE id = ? AND list = ?')
-			->execute([(int) ($input['id'] ?? 0), $list['id']]);
+			->execute([$this->id($input), $list['id']]);
 		$this->touchList($list['id']);
 		return ['deleted' => true];
 	}
@@ -206,10 +212,14 @@ class Api
 	private function reorder(array $input): array
 	{
 		$list = $this->findAdminList($input);
+		$ids = $input['ids'] ?? null;
+		if (!is_array($ids) || !array_is_list($ids) || count($ids) > self::MAX_ITEMS || array_filter($ids, fn ($id) => !is_int($id))) {
+			throw new ApiException(400, 'Invalid ids');
+		}
 		$stmt = $this->db->prepare('UPDATE items SET weight = ? WHERE id = ? AND list = ?');
 		$this->db->beginTransaction();
-		foreach (array_values((array) ($input['ids'] ?? [])) as $weight => $id) {
-			$stmt->execute([$weight, (int) $id, $list['id']]);
+		foreach ($ids as $weight => $id) {
+			$stmt->execute([$weight, $id, $list['id']]);
 		}
 		$this->touchList($list['id']);
 		$this->db->commit();
@@ -220,13 +230,13 @@ class Api
 	private function setState(array $input): array
 	{
 		$list = $this->findList($input);
-		$from = ItemState::tryFrom((string) ($input['from'] ?? ''));
-		$to = ItemState::tryFrom((string) ($input['to'] ?? ''));
+		$from = ItemState::tryFrom($this->param($input, 'from'));
+		$to = ItemState::tryFrom($this->param($input, 'to'));
 		if (!$from || !$to || $from === $to) {
 			throw new ApiException(400, 'Invalid state');
 		}
 		$stmt = $this->db->prepare('UPDATE items SET state = ? WHERE id = ? AND list = ? AND state = ?');
-		$stmt->execute([$to->value, (int) ($input['id'] ?? 0), $list['id'], $from->value]);
+		$stmt->execute([$to->value, $this->id($input), $list['id'], $from->value]);
 		if ($stmt->rowCount() === 0) {
 			throw new ApiException(409, 'State was changed in the meantime');
 		}
@@ -238,7 +248,7 @@ class Api
 	private function findList(array $input): array
 	{
 		$stmt = $this->db->prepare('SELECT * FROM lists WHERE slug_public = ?');
-		$stmt->execute([(string) ($input['public'] ?? '')]);
+		$stmt->execute([$this->param($input, 'public')]);
 		return $stmt->fetch() ?: throw new ApiException(404, 'List not found');
 	}
 
@@ -246,7 +256,7 @@ class Api
 	private function findAdminList(array $input): array
 	{
 		$list = $this->findList($input);
-		if (!hash_equals($list['slug_private'], (string) ($input['private'] ?? ''))) {
+		if (!hash_equals($list['slug_private'], $this->param($input, 'private'))) {
 			throw new ApiException(403, 'Not allowed');
 		}
 		return $list;
@@ -294,25 +304,81 @@ class Api
 		return $row;
 	}
 
-	// Build "a = :a, b = :b" assignments and parameters from allowed fields present in data
+	// Build "a = :a, b = :b" assignments and validated parameters from allowed fields present in data
 	private function assignments(array $data, array $allowed): array
 	{
 		$sets = [];
 		$params = [];
 		foreach ($allowed as $field) {
 			if (array_key_exists($field, $data)) {
-				$value = $data[$field];
-				if ($field === 'links') {
-					$value = $value !== null ? json_encode(array_values((array) $value)) : null;
-				}
-				if ($field === 'spoiler') {
-					$value = (int) (bool) $value;
-				}
 				$sets[] = "$field = :$field";
-				$params[$field] = $value;
+				$params[$field] = $this->value($field, $data[$field]);
 			}
 		}
 		return [implode(', ', $sets), $params];
+	}
+
+	// Validate client value of given field and convert it for the database
+	private function value(string $field, mixed $value): mixed
+	{
+		return match ($field) {
+			'title' => $this->text($field, $value, self::MAX_TITLE, false),
+			'description' => $this->text($field, $value, self::MAX_DESCRIPTION),
+			'price' => $this->text($field, $value, self::MAX_PRICE),
+			'color' => is_string($value) && preg_match('/^#[0-9a-f]{6}$/i', $value)
+				? $value
+				: throw new ApiException(400, 'Invalid color'),
+			'spoiler' => is_bool($value) ? (int) $value : throw new ApiException(400, 'Invalid spoiler'),
+			'links' => $this->links($value),
+		};
+	}
+
+	// Validate text with maximum length, optional texts may be null
+	private function text(string $field, mixed $value, int $max, bool $optional = true): ?string
+	{
+		if ($value === null && $optional) {
+			return null;
+		}
+		if (!is_string($value) || mb_strlen($value) > $max || (!$optional && trim($value) === '')) {
+			throw new ApiException(400, "Invalid $field");
+		}
+		return $value;
+	}
+
+	// Validate list of http(s) links and encode it as JSON
+	private function links(mixed $value): ?string
+	{
+		if ($value === null) {
+			return null;
+		}
+		if (!is_array($value) || !array_is_list($value) || count($value) > self::MAX_LINKS) {
+			throw new ApiException(400, 'Invalid links');
+		}
+		foreach ($value as $link) {
+			if (!is_string($link) || strlen($link) > self::MAX_LINK_LENGTH || !preg_match('#^https?://\S+$#i', $link)) {
+				throw new ApiException(400, 'Invalid links');
+			}
+		}
+		return json_encode($value);
+	}
+
+	// Get string parameter, empty if missing or not a string
+	private function param(array $input, string $key): string
+	{
+		return is_string($input[$key] ?? null) ? $input[$key] : '';
+	}
+
+	// Get id parameter, 0 if missing or not an integer
+	private function id(array $input): int
+	{
+		return is_int($input['id'] ?? null) ? $input['id'] : 0;
+	}
+
+	// Get object parameter, fails if given but not an object
+	private function data(array $input, string $key): array
+	{
+		$data = $input[$key] ?? [];
+		return is_array($data) ? $data : throw new ApiException(400, "Invalid $key");
 	}
 }
 
@@ -320,15 +386,22 @@ class Api
 // Run
 // ---------------------------------------------------------------------------
 
+// Never output PHP errors, they are logged instead
+ini_set('display_errors', '0');
+
 try {
 	// Validate requested action and HTTP method
-	$action = Action::tryFrom($_GET['action'] ?? '') ?? throw new ApiException(400, 'Unknown action');
+	$name = $_GET['action'] ?? '';
+	$action = (is_string($name) ? Action::tryFrom($name) : null) ?? throw new ApiException(400, 'Unknown action');
 	if ($action->isWrite() && $_SERVER['REQUEST_METHOD'] !== 'POST') {
 		throw new ApiException(405, 'Method not allowed');
 	}
 
 	// Read parameters from query string (reads) or JSON body (writes)
 	$input = $action->isWrite() ? (json_decode(file_get_contents('php://input'), true) ?? []) : $_GET;
+	if (!is_array($input)) {
+		throw new ApiException(400, 'Invalid input');
+	}
 
 	// Connect to database, all dates are handled as UTC
 	$config = require __DIR__ . '/config.php';
@@ -344,7 +417,7 @@ try {
 	respond((new Api($db))->handle($action, $input));
 } catch (ApiException $e) {
 	respond(['error' => $e->getMessage()], $e->status);
-} catch (PDOException $e) {
-	error_log($e->getMessage());
-	respond(['error' => 'Database error'], 500);
+} catch (Throwable $e) {
+	error_log((string) $e);
+	respond(['error' => 'Server error'], 500);
 }
