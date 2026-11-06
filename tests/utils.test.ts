@@ -1,4 +1,4 @@
-import { expect, test } from 'vitest'
+import { expect, test, vi } from 'vitest'
 import * as utils from '@/utils';
 
 test('base url extraction', () => {
@@ -68,4 +68,24 @@ test('custom colored favicon', async () => {
   meta = document.querySelector("meta[name='theme-color']");
   expect(link?.href).toContain('data:image/svg+xml;base64');
   expect(meta?.content).toContain(color);
+});
+
+test('dark theme follows system color scheme', () => {
+  let listener = () => {};
+  const query = {
+    matches: true,
+    addEventListener: (_: string, fn: () => void) => { listener = fn },
+  };
+  vi.stubGlobal('matchMedia', () => query);
+  const html = document.documentElement;
+  utils.followColorScheme();
+  expect(html.classList.contains('sl-theme-dark')).toBe(true);
+  query.matches = false;
+  listener();
+  expect(html.classList.contains('sl-theme-dark')).toBe(false);
+  query.matches = true;
+  listener();
+  expect(html.classList.contains('sl-theme-dark')).toBe(true);
+  vi.unstubAllGlobals();
+  html.classList.remove('sl-theme-dark');
 });

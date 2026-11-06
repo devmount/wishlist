@@ -1,6 +1,10 @@
 // Init UI components
 import '@/shoelace';
 
+// Follow system color scheme
+import { followColorScheme } from '@/utils';
+followColorScheme();
+
 // Init app
 import { createApp } from 'vue';
 import App from '@/App.vue';

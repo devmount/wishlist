@@ -49,6 +49,11 @@ const router = useRouter();
   }
 }
 
+.sl-theme-dark #app > footer {
+  background: var(--sl-color-gray-50);
+  color: var(--sl-color-gray-700);
+}
+
 .sl-toast-stack {
   top: auto;
   bottom: 0;

@@ -1,6 +1,7 @@
 // Shoelace web components, bundled instead of loaded from a CDN.
 // Only components used in the app are imported, add new ones here.
 import '@shoelace-style/shoelace/dist/themes/light.css';
+import '@shoelace-style/shoelace/dist/themes/dark.css';
 import { registerIconLibrary } from '@shoelace-style/shoelace/dist/utilities/icon-library.js';
 
 import '@shoelace-style/shoelace/dist/components/alert/alert.js';
