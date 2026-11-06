@@ -30,3 +30,8 @@ test('all used icons are imported', () => {
     expect(setup, `icon ${name} is used but not imported`).toContain(`'${name}': `);
   }
 });
+
+test('light and dark themes are imported', () => {
+  expect(setup).toContain(`/themes/light.css'`);
+  expect(setup).toContain(`/themes/dark.css'`);
+});

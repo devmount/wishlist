@@ -7,7 +7,7 @@ export const getAllFromStorage = (): List[] => {
   return JSON.parse(localStorage.wishlists || null) || [];
 };
 
-/**f
+/**
  * Returns list index of found entry, otherwise -1
  */
 export const listIndex = (list: List | null): number => {

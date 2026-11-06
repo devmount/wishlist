@@ -14,7 +14,7 @@ interface Props {
 defineProps<Props>();
 </script>
 <template>
-  <sl-card :style="{ background: `linear-gradient(135deg, ${list.color} 0%, ${list.color} 24px, transparent 24px)` }">
+  <sl-card class="accent" :style="{ '--accent': list.color, background: 'linear-gradient(135deg, var(--accent-safe) 0%, var(--accent-safe) 24px, transparent 24px)' }">
     <div class="text-overflow-ellipsis">{{ list.title }}</div>
     <div class="font-xs">
       Erstellt <sl-relative-time :date="list.created" lang="de"></sl-relative-time>

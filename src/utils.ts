@@ -77,3 +77,11 @@ export const colorFavicon = (color: string) => {
     document.getElementsByTagName('head')[0].appendChild(meta);
     meta.content = color;
 }
+
+// Apply Shoelace dark theme according to system settings and follow changes
+export const followColorScheme = () => {
+  const query = window.matchMedia('(prefers-color-scheme: dark)');
+  const apply = () => document.documentElement.classList.toggle('sl-theme-dark', query.matches);
+  apply();
+  query.addEventListener('change', apply);
+};

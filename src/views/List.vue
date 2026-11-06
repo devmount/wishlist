@@ -205,10 +205,10 @@ const accent = computed(() => {
     </header>
   </div>
   <div v-else-if="list">
-    <header class="content-center mb-3xl">
-      <Logo @click="router.push({ name: 'start' })" :style="{ color: accent }" class="c-pointer" />
+    <header class="content-center mb-3xl accent" :style="{ '--accent': accent }">
+      <Logo @click="router.push({ name: 'start' })" class="c-pointer" />
       <h1>{{ list.title }}</h1>
-      <hr :style="{ background: accent }" /> 
+      <hr />
       <p class="pre-line">{{ list.description }}</p>
     </header>
 
@@ -337,6 +337,13 @@ const accent = computed(() => {
 </template>
 
 <style>
+header.accent .logo {
+  color: var(--accent-safe);
+}
+header.accent hr {
+  background: var(--accent-safe);
+}
+
 .menu {
   height: var(--sl-spacing-4x-large);
   width: var(--sl-spacing-4x-large);
